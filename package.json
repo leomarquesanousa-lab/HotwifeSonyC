@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && next build",
+    "dev": "next dev --webpack",
+    "build": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && next build --webpack",
     "start": "cross-env PLAYWRIGHT_BROWSERS_PATH=0 next start",
     "lint": "eslint",
     "manyvids:provision-session": "node scripts/provision-manyvids-session.mjs",
