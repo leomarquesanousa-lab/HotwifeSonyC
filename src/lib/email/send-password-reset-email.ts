@@ -16,7 +16,7 @@ export async function sendPasswordResetEmail({
 }) {
   const locale =
     authLocales.find((item) => item === requestedLocale) ?? "en-US";
-  const url = new URL(`/${locale}/reset-password`, emailConfiguration().appUrl);
+  const url = new URL(`/reset-password`, emailConfiguration().appUrl);
   url.searchParams.set("token", token);
   const template = await authEmailTemplate(
     "reset",

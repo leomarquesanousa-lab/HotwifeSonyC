@@ -184,7 +184,7 @@ export default function OnboardingCheckPage() {
       }
 
       router.replace(
-        `/${locale}/app`,
+        `/app`,
       );
 
       router.refresh();

@@ -16,7 +16,7 @@ export async function sendVerificationEmail({
 }) {
   const locale =
     authLocales.find((item) => item === requestedLocale) ?? "en-US";
-  const url = new URL(`/${locale}/verify-email`, emailConfiguration().appUrl);
+  const url = new URL(`/verify-email`, emailConfiguration().appUrl);
   url.searchParams.set("token", token);
   const template = await authEmailTemplate(
     "verification",

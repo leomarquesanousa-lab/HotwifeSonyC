@@ -233,7 +233,7 @@ function redirectWithStatus(
     getAppUrl();
 
   const pathname =
-    `/${locale}/app/platforms`;
+    `/app/platforms`;
 
   const url =
     new URL(

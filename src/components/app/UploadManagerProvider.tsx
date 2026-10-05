@@ -49,15 +49,15 @@ export type UploadManagerStatus =
   | "CANCELLED";
 
 export type UploadTarget = {
-  performerId: string;
-  folderId: string;
+  performerId?: string;
+  folderId?: string;
 };
 
 export type ManagedUpload = {
   localId: string;
   file: File;
-  performerId: string;
-  folderId: string;
+  performerId?: string;
+  folderId?: string;
   mediaId: string | null;
   uploadId: string | null;
   progress: number;
@@ -944,17 +944,16 @@ export function UploadManagerProvider({
     useCallback(
       (
         files: File[],
-        target: UploadTarget,
+        target: UploadTarget = {},
       ): AddFilesResult => {
         if (
-          !target.performerId ||
-          !target.folderId
+          Boolean(target.performerId) !== Boolean(target.folderId)
         ) {
           return {
             success: false,
             added: 0,
             error:
-              "Select a performer and a destination folder first.",
+              "Select a complete upload destination.",
           };
         }
 

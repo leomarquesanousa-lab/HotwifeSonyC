@@ -1,0 +1,4 @@
+﻿import Link from 'next/link';
+import { Film, ArrowUpRight } from 'lucide-react';
+export const metadata = { title: 'My Videos' };
+export default function Page() { return <section className="store-section store-page"><span className="store-eyebrow">YOUR PERSONAL SPACE</span><h1>My Videos</h1><p className="store-lead">Your favorite stories, all in one place.</p><nav className="store-account-nav"><Link href="/my-videos" aria-current="page">Purchased Videos</Link><Link href="/account">My Account</Link></nav><div className="store-empty"><Film size={40}/><h2>Your collection starts with a discovery.</h2><p>Once purchases are available, your videos will appear here.<br/>Purchase history and video access are not active in this demo.</p><Link className="store-button" href="/videos">Explore Videos <ArrowUpRight size={18}/></Link><Link className="store-text-link" href="/login">Sign In to My Account</Link></div></section>; }

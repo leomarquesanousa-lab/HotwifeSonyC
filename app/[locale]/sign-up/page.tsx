@@ -54,9 +54,6 @@ export default function SignUpPage() {
     }
   }
 
-  function changeLanguage(newLocale: string) {
-    router.push(`/${newLocale}/sign-up`);
-  }
 
   function validatePassword(value: string) {
     if (value.length < 12) {
@@ -167,7 +164,7 @@ export default function SignUpPage() {
       setSuccessMessage(t("accountCreated"));
 
       window.setTimeout(() => {
-        router.push(`/${locale}/login`);
+        router.push(`/login`);
       }, 1500);
     } catch {
       
@@ -240,30 +237,6 @@ export default function SignUpPage() {
                   {common("appName")}
                 </span>
               </div>
-
-              <select
-                value={locale}
-                onChange={(event) =>
-                  changeLanguage(event.target.value)
-                }
-                className="ml-auto rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none"
-              >
-                <option value="en-US" className="bg-[#10141e]">
-                  {common("english")}
-                </option>
-
-                <option value="pt-BR" className="bg-[#10141e]">
-                  {common("portuguese")}
-                </option>
-
-                <option value="es-ES" className="bg-[#10141e]">
-                  {common("spanish")}
-                </option>
-
-                <option value="fr-FR" className="bg-[#10141e]">
-                  {common("french")}
-                </option>
-              </select>
             </div>
 
             <div className="mb-8">
@@ -454,7 +427,7 @@ export default function SignUpPage() {
             <div className="mt-8 text-center text-sm text-white/40">
               {t("alreadyHaveAccount")}{" "}
               <a
-                href={`/${locale}/login`}
+                href={`/login`}
                 className="font-medium text-white/80 hover:text-white"
               >
                 {t("signInHere")}

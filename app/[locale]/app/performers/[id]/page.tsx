@@ -1141,7 +1141,7 @@ export default function PerformerDetailPage() {
       }
 
       router.push(
-        `/${locale}/app/performers`,
+        `/app/performers`,
       );
       router.refresh();
     } catch (error) {
@@ -1185,7 +1185,7 @@ export default function PerformerDetailPage() {
       <main className="min-h-screen bg-[#080b12] text-white">
         <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-7 lg:px-8">
           <Link
-            href={`/${locale}/app/performers`}
+            href={`/app/performers`}
             className="inline-flex items-center gap-2 text-xs text-white/40 transition hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1205,7 +1205,7 @@ export default function PerformerDetailPage() {
     <main className="min-h-screen bg-[#080b12] text-white">
       <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-7 lg:px-8">
         <Link
-          href={`/${locale}/app/performers`}
+          href={`/app/performers`}
           className="mb-5 inline-flex items-center gap-2 text-[11px] text-white/35 transition hover:text-white"
         >
           <ArrowLeft className="h-3.5 w-3.5" />

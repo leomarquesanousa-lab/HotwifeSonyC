@@ -21,7 +21,7 @@ export default function ResendVerificationPage() {
           className="w-full mt-2 rounded-xl bg-white/5 border border-white/10 p-3"
         />
         <ResendVerification email={email} />
-        <a href={`/${locale}/login`} className="block mt-6 text-sm">
+        <a href={`/login`} className="block mt-6 text-sm">
           {t("verificationBackToLogin")}
         </a>
       </section>

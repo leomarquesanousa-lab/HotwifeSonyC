@@ -229,7 +229,7 @@ function redirectWithStatus(
     getAppUrl();
 
   const url = new URL(
-    "/en-US/onboarding/platforms",
+    "/onboarding/platforms",
     appUrl,
   );
 

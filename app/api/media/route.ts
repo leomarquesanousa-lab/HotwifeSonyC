@@ -57,25 +57,17 @@ export async function GET(
         "performerId",
       );
 
-    if (!performerId) {
-      return NextResponse.json({
-        success: true,
-        media: [],
-        total: 0,
-      });
-    }
-
     const performer =
-      await db.orm.public.Performer
+      performerId ? await db.orm.public.Performer
         .where({
           id:
             performerId,
           workspaceId:
             workspaceMember.workspaceId,
         })
-        .first();
+        .first() : null;
 
-    if (!performer) {
+    if (performerId && !performer) {
       return NextResponse.json(
         {
           success: false,
@@ -91,17 +83,17 @@ export async function GET(
     }
 
     const performerMediaLinks =
-      await db.orm.public.MediaAssetPerformer
+      performer ? await db.orm.public.MediaAssetPerformer
         .where({
           workspaceId:
             workspaceMember.workspaceId,
           performerId:
             performer.id,
         })
-        .all();
+        .all() : [];
 
     if (
-      performerMediaLinks.length ===
+      performer && performerMediaLinks.length ===
       0
     ) {
       return NextResponse.json({
@@ -136,7 +128,7 @@ export async function GET(
     const mediaAssets =
       workspaceMedia.filter(
         (media) =>
-          linkedMediaIds.has(
+          !performerId || linkedMediaIds.has(
             media.id,
           ),
       );
@@ -159,12 +151,7 @@ export async function GET(
     return NextResponse.json({
       success: true,
 
-      performer: {
-        id:
-          performer.id,
-        displayName:
-          performer.displayName,
-      },
+      ...(performer ? { performer: { id: performer.id, displayName: performer.displayName } } : {}),
 
       media:
         sortedMedia.map(

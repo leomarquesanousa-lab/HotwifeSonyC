@@ -186,7 +186,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <a
-                  href={`/${locale}/login`}
+                  href={`/login`}
                   className="mt-5 flex w-full items-center justify-center rounded-xl bg-white px-4 py-3.5 text-sm font-semibold text-[#080b12]"
                 >
                   {t("signIn")}

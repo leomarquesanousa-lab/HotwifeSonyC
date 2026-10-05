@@ -1,5 +1,4 @@
 import { createTranslator } from "next-intl";
-import { authLocales } from "@/src/lib/auth/request";
 export function escapeHtml(value: string) {
   return value.replace(
     /[&<>"']/g,
@@ -15,7 +14,7 @@ export async function authEmailTemplate(
   name: string | null | undefined,
   url: string,
 ) {
-  const locale = authLocales.find((item) => item === localeInput) ?? "en-US";
+  const locale = "en-US";
   const messages = (await import(`../../../../i18n/messages/${locale}.json`))
     .default;
   const t = createTranslator({ locale, messages: messages.authEmail[kind] });
@@ -28,6 +27,6 @@ export async function authEmailTemplate(
   return {
     subject: t("subject"),
     text: [t("heading"), ...lines, url].join("\n\n"),
-    html: `<!doctype html><html lang="${locale}"><body style="background:#080b12;color:#fff;font-family:Arial,sans-serif;padding:32px"><main style="max-width:560px;margin:auto"><p>Creator Platform</p><h1>${escapeHtml(t("heading"))}</h1>${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}<p><a style="color:#60a5fa" href="${escapeHtml(url)}">${escapeHtml(t("button"))}</a></p></main></body></html>`,
+    html: `<!doctype html><html lang="en"><body style="background:#080b12;color:#fff;font-family:Arial,sans-serif;padding:32px"><main style="max-width:560px;margin:auto"><p>Creator Platform</p><h1>${escapeHtml(t("heading"))}</h1>${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}<p><a style="color:#60a5fa" href="${escapeHtml(url)}">${escapeHtml(t("button"))}</a></p></main></body></html>`,
   };
 }

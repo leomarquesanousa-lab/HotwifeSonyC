@@ -3,13 +3,11 @@
 import Link from "next/link";
 
 import {
-  Bell,
   CheckCircle2,
+  Film,
   FileVideo2,
   Loader2,
   Menu,
-  Search,
-  Send,
   Settings,
   UploadCloud,
   UserRound,
@@ -31,6 +29,8 @@ import {
 import {
   useUploadManager,
 } from "@/src/components/app/UploadManagerProvider";
+
+import { futureStoreNavigation, getStoreNavigation } from './store-navigation';
 
 export default function AppHeader() {
   const params =
@@ -83,100 +83,36 @@ export default function AppHeader() {
     0 ||
     isUploading;
 
-  const mobileLinks = [
-    {
-      label:
-        t("dashboard"),
-      href:
-        `/${locale}/app`,
-    },
-    {
-      label:
-        t("mediaLibrary"),
-      href:
-        `/${locale}/app/media`,
-    },
-    {
-      label:
-        t("publishEverywhere"),
-      href:
-        `/${locale}/app/distribution`,
-    },
-    {
-      label:
-        t("platforms"),
-      href:
-        `/${locale}/app/platforms`,
-    },
-    {
-      label:
-        t("analytics"),
-      href:
-        `/${locale}/app/analytics`,
-    },
-    {
-      label:
-        t("settings"),
-      href:
-        `/${locale}/app/settings`,
-    },
-  ];
+  const mobileLinks = getStoreNavigation(locale, t).map(item => ({ label: item.label, href: item.path }));
 
   return (
     <>
       <header className="sticky top-0 z-50 h-[64px] border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
         <div className="flex h-full w-full items-center px-5 lg:px-6">
           <Link
-            href={`/${locale}/app`}
+            href={`/app`}
             className="flex w-auto shrink-0 items-center gap-3 lg:w-[194px]"
           >
             <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 shadow-[0_0_25px_rgba(99,102,241,0.2)]">
-              <Send className="relative z-10 h-4 w-4 text-white" />
+              <Film className="relative z-10 h-4 w-4 text-white" />
 
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
             </div>
 
             <div className="hidden sm:block">
               <div className="text-[13px] font-semibold tracking-[-0.02em] text-white">
-                Creator Platform
+                HotwifeSonyC
               </div>
 
               <div className="mt-0.5 text-[8px] uppercase tracking-[0.16em] text-white/25">
-                {t("brandTagline")}
+                VIDEO STORE ADMIN
               </div>
             </div>
           </Link>
 
           <div className="hidden h-7 w-px bg-white/[0.06] lg:block" />
 
-          <button
-            type="button"
-            className="ml-5 hidden items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[11px] text-white/55 transition hover:bg-white/[0.045] lg:flex"
-          >
-            <div className="h-2 w-2 rounded-full bg-emerald-400" />
-
-            {t("myWorkspace")}
-
-            <span className="ml-1 text-[9px] text-white/20">
-              ▼
-            </span>
-          </button>
-
-          <div className="mx-auto hidden w-full max-w-[420px] px-8 xl:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/20" />
-
-              <input
-                type="text"
-                placeholder={t("searchMedia")}
-                className="h-9 w-full rounded-xl border border-white/[0.07] bg-white/[0.025] pl-9 pr-12 text-[11px] text-white outline-none placeholder:text-white/20 focus:border-blue-500/30"
-              />
-
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-white/[0.06] bg-white/[0.025] px-1.5 py-1 text-[8px] text-white/20">
-                CTRL K
-              </div>
-            </div>
-          </div>
+          <Link href={`/app/store/videos`} className="ml-5 hidden rounded-xl border border-white/[0.07] px-3 py-2 text-[11px] text-white/55 lg:block">Videos for Sale</Link>
 
           <div className="ml-auto hidden items-center gap-2 lg:flex">
             {hasUploads && (
@@ -248,34 +184,22 @@ export default function AppHeader() {
                         false,
                       )
                     }
-                    mediaHref={`/${locale}/app/media`}
+                    mediaHref={`/app/media`}
                     t={t}
                   />
                 )}
               </div>
             )}
 
-            <button
-              type="button"
-              aria-label={t("notifications")}
-              className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/35 transition hover:bg-white/[0.05] hover:text-white"
-            >
-              <Bell className="h-4 w-4" />
-
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-400 ring-2 ring-[#080b12]" />
-            </button>
-
-            <Link
-              href={`/${locale}/app/settings`}
+<Link
+              href={`/app/settings`}
               aria-label={t("settings")}
               className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] bg-white/[0.025] text-white/35 transition hover:bg-white/[0.05] hover:text-white"
             >
               <Settings className="h-4 w-4" />
             </Link>
 
-            <button
-              type="button"
-              className="ml-1 flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2 py-1.5 transition hover:bg-white/[0.05]"
+            <Link href={`/app/settings#my-account`} aria-label="My Account" className="ml-1 flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2 py-1.5 transition hover:bg-white/[0.05]"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/25 to-violet-500/25">
                 <UserRound className="h-3.5 w-3.5 text-white/60" />
@@ -287,10 +211,10 @@ export default function AppHeader() {
                 </div>
 
                 <div className="text-[9px] text-white/25">
-                  {t("creator")}
+                  Store administrator
                 </div>
               </div>
-            </button>
+            </Link>
           </div>
 
           <div className="ml-auto flex items-center gap-2 lg:hidden">
@@ -369,7 +293,7 @@ export default function AppHeader() {
                 false,
               )
             }
-            mediaHref={`/${locale}/app/media`}
+            mediaHref={`/app/media`}
             mobile
             t={t}
           />
@@ -401,6 +325,11 @@ export default function AppHeader() {
                 </Link>
               ),
             )}
+            {futureStoreNavigation.map(label => (
+              <div key={label} aria-disabled="true" className="flex justify-between rounded-xl px-4 py-3 text-xs text-white/25">
+                <span>{label}</span><span>Planned</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

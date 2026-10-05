@@ -1,0 +1,12 @@
+﻿import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ArrowLeft, ArrowUpRight, Clock, Film } from 'lucide-react';
+import { priceLabel } from '@/components/storefront/data';
+import { getPublishedVideo, getPublishedVideos } from '@/src/lib/store/public';
+import { Teaser } from '@/components/storefront/StorefrontInteractive';
+import { VideoSection } from '@/components/storefront/Storefront';
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) { const {slug} = await params; return { title: (await getPublishedVideo(slug))?.title ?? 'Video Not Found' }; }
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+ const {slug} = await params; const video = await getPublishedVideo(slug); if (!video) notFound(); const videos = await getPublishedVideos();
+ return <><section className="store-section store-page"><Link className="store-text-link" href="/videos"><ArrowLeft size={16}/> Back to Collection</Link><div className="store-detail"><div><Teaser video={video}/><div className="store-description"><span className="store-eyebrow">ABOUT THIS VIDEO</span><h2>{video.title}</h2><p>{video.description}</p><div className="store-tags">{video.tags.map(tag => <span key={tag}>{tag}</span>)}</div></div></div><aside className="store-purchase"><span className="store-eyebrow">{video.category} / SONY C</span><h1>{video.title}</h1><p>An original visual story for your collection.</p><div className="store-video-meta"><span><Clock size={17}/>{video.duration}</span><span><Film size={17}/>Single video</span></div><hr/><small>ONE-TIME PURCHASE</small><strong className="store-price">{priceLabel(video.priceCents, video.currency)}</strong><Link className="store-button" href={`/checkout/${video.slug}`}>Buy Video <ArrowUpRight size={18}/></Link><p className="store-fine">Ready to choose? You can buy without watching the preview. This is a demo checkout; you won’t be charged.</p><div className="store-content-info"><strong>Video Details</strong><p>Creator: Sony C<br/>Category: {video.category}<br/>Preview: {video.teaser.source ? 'Available' : 'Not available'}<br/>Original video content</p></div></aside></div></section><VideoSection label="KEEP EXPLORING" title="You May Also Like" items={videos.filter(item => item.id !== video.id).sort((a,b) => Number(b.category === video.category)-Number(a.category === video.category)).slice(0,4)}/></>;
+}

@@ -1,0 +1,446 @@
+[
+  {
+    "id": "table.videoProduct",
+    "label": "Create table \"videoProduct\"",
+    "summary": "Creates table \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"videoProduct\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"videoProduct\"",
+        "sql": "CREATE TABLE \"public\".\"videoProduct\" (\n  \"category\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"currency\" text DEFAULT 'USD' NOT NULL,\n  \"description\" text NOT NULL,\n  \"featured\" bool DEFAULT false NOT NULL,\n  \"id\" text NOT NULL,\n  \"mediaAssetId\" text NOT NULL,\n  \"priceCents\" int4 NOT NULL,\n  \"publishedAt\" timestamptz,\n  \"slug\" text NOT NULL,\n  \"status\" text DEFAULT 'DRAFT' NOT NULL,\n  \"teaserMediaAssetId\" text,\n  \"thumbnailMediaAssetId\" text,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"videoProduct\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.videoProduct.videoProduct_slug_key",
+    "label": "Add unique constraint on \"videoProduct\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "videoProduct_slug_key",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"videoProduct_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_slug_key",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"videoProduct_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\" ADD CONSTRAINT \"videoProduct_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"videoProduct_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_slug_key",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.videoProduct.videoProduct_mediaAssetId_idx_523c8890",
+    "label": "Create index \"videoProduct_mediaAssetId_idx_523c8890\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "videoProduct_mediaAssetId_idx_523c8890",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"videoProduct_mediaAssetId_idx_523c8890\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_mediaAssetId_idx_523c8890\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"videoProduct_mediaAssetId_idx_523c8890\"",
+        "sql": "CREATE INDEX \"videoProduct_mediaAssetId_idx_523c8890\" ON \"public\".\"videoProduct\" (\"mediaAssetId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"videoProduct_mediaAssetId_idx_523c8890\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_mediaAssetId_idx_523c8890\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.videoProduct.videoProduct_status_publishedAt_idx_4d4b1960",
+    "label": "Create index \"videoProduct_status_publishedAt_idx_4d4b1960\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "videoProduct_status_publishedAt_idx_4d4b1960",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"videoProduct_status_publishedAt_idx_4d4b1960\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_status_publishedAt_idx_4d4b1960\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"videoProduct_status_publishedAt_idx_4d4b1960\"",
+        "sql": "CREATE INDEX \"videoProduct_status_publishedAt_idx_4d4b1960\" ON \"public\".\"videoProduct\" (\"status\", \"publishedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"videoProduct_status_publishedAt_idx_4d4b1960\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_status_publishedAt_idx_4d4b1960\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.videoProduct.videoProduct_teaserMediaAssetId_idx_18deabb8",
+    "label": "Create index \"videoProduct_teaserMediaAssetId_idx_18deabb8\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "videoProduct_teaserMediaAssetId_idx_18deabb8",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"videoProduct_teaserMediaAssetId_idx_18deabb8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_teaserMediaAssetId_idx_18deabb8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"videoProduct_teaserMediaAssetId_idx_18deabb8\"",
+        "sql": "CREATE INDEX \"videoProduct_teaserMediaAssetId_idx_18deabb8\" ON \"public\".\"videoProduct\" (\"teaserMediaAssetId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"videoProduct_teaserMediaAssetId_idx_18deabb8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_teaserMediaAssetId_idx_18deabb8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.videoProduct.videoProduct_thumbnailMediaAssetId_idx_907f6177",
+    "label": "Create index \"videoProduct_thumbnailMediaAssetId_idx_907f6177\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "videoProduct_thumbnailMediaAssetId_idx_907f6177",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"videoProduct_thumbnailMediaAssetId_idx_907f6177\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_thumbnailMediaAssetId_idx_907f6177\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"videoProduct_thumbnailMediaAssetId_idx_907f6177\"",
+        "sql": "CREATE INDEX \"videoProduct_thumbnailMediaAssetId_idx_907f6177\" ON \"public\".\"videoProduct\" (\"thumbnailMediaAssetId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"videoProduct_thumbnailMediaAssetId_idx_907f6177\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_thumbnailMediaAssetId_idx_907f6177\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.videoProduct.videoProduct_workspaceId_idx_ba65f874",
+    "label": "Create index \"videoProduct_workspaceId_idx_ba65f874\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "videoProduct_workspaceId_idx_ba65f874",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"videoProduct_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"videoProduct_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"videoProduct_workspaceId_idx_ba65f874\" ON \"public\".\"videoProduct\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"videoProduct_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"videoProduct_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.videoProduct.videoProduct_workspaceId_fkey",
+    "label": "Add foreign key \"videoProduct_workspaceId_fkey\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "videoProduct_workspaceId_fkey",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"videoProduct_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_workspaceId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"videoProduct_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\"\nADD CONSTRAINT \"videoProduct_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"videoProduct_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_workspaceId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.videoProduct.videoProduct_mediaAssetId_fkey",
+    "label": "Add foreign key \"videoProduct_mediaAssetId_fkey\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "videoProduct_mediaAssetId_fkey",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"videoProduct_mediaAssetId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_mediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"videoProduct_mediaAssetId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\"\nADD CONSTRAINT \"videoProduct_mediaAssetId_fkey\"\nFOREIGN KEY (\"mediaAssetId\")\nREFERENCES \"public\".\"mediaAsset\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"videoProduct_mediaAssetId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_mediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.videoProduct.videoProduct_teaserMediaAssetId_fkey",
+    "label": "Add foreign key \"videoProduct_teaserMediaAssetId_fkey\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "videoProduct_teaserMediaAssetId_fkey",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"videoProduct_teaserMediaAssetId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_teaserMediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"videoProduct_teaserMediaAssetId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\"\nADD CONSTRAINT \"videoProduct_teaserMediaAssetId_fkey\"\nFOREIGN KEY (\"teaserMediaAssetId\")\nREFERENCES \"public\".\"mediaAsset\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"videoProduct_teaserMediaAssetId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_teaserMediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.videoProduct.videoProduct_thumbnailMediaAssetId_fkey",
+    "label": "Add foreign key \"videoProduct_thumbnailMediaAssetId_fkey\" on \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "videoProduct_thumbnailMediaAssetId_fkey",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"videoProduct_thumbnailMediaAssetId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_thumbnailMediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"videoProduct_thumbnailMediaAssetId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\"\nADD CONSTRAINT \"videoProduct_thumbnailMediaAssetId_fkey\"\nFOREIGN KEY (\"thumbnailMediaAssetId\")\nREFERENCES \"public\".\"mediaAsset\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"videoProduct_thumbnailMediaAssetId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "videoProduct_thumbnailMediaAssetId_fkey",
+          "public",
+          "\"public\".\"videoProduct\""
+        ]
+      }
+    ]
+  }
+]

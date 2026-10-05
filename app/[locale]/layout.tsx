@@ -3,7 +3,6 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { locales, type Locale } from "../../i18n/request";
 
 type Props = {
   children: ReactNode;
@@ -18,7 +17,7 @@ export default async function LocaleLayout({
 }: Props) {
   const { locale } = await params;
 
-  if (!locales.includes(locale as Locale)) {
+  if (locale !== "en-US") {
     notFound();
   }
 

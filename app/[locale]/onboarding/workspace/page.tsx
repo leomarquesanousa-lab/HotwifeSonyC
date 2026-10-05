@@ -35,7 +35,7 @@ export default function WorkspaceOnboardingPage() {
       return;
     }
 
-    router.push(`/${locale}/onboarding/creators`);
+    router.push(`/onboarding/creators`);
   }
 
   return (
@@ -47,7 +47,7 @@ export default function WorkspaceOnboardingPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push(`/${locale}/onboarding`)
+                  router.push(`/onboarding`)
                 }
                 className="flex items-center gap-2 text-sm text-white/40 transition hover:text-white/70"
               >

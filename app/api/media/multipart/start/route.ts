@@ -109,8 +109,7 @@ export async function POST(
     }
 
     if (
-      !performerId ||
-      !folderId
+      Boolean(performerId) !== Boolean(folderId)
     ) {
       return NextResponse.json(
         {
@@ -118,7 +117,7 @@ export async function POST(
           error:
             "MEDIA_DESTINATION_REQUIRED",
           message:
-            "Select a performer and a destination folder before uploading.",
+            "Select a complete upload destination.",
         },
         {
           status: 400,
@@ -167,14 +166,14 @@ export async function POST(
     }
 
     const performer =
-      await db.orm.public.Performer.where({
+      performerId ? await db.orm.public.Performer.where({
         id:
           performerId,
         workspaceId:
           workspaceMember.workspaceId,
-      }).first();
+      }).first() : null;
 
-    if (!performer) {
+    if (performerId && !performer) {
       return NextResponse.json(
         {
           success: false,
@@ -188,18 +187,18 @@ export async function POST(
     }
 
     const folder =
-      await db.orm.public.PerformerLibraryFolder.where({
+      performer ? await db.orm.public.PerformerLibraryFolder.where({
         id:
           folderId,
         workspaceId:
           workspaceMember.workspaceId,
         performerId:
           performer.id,
-      }).first();
+      }).first() : null;
 
     if (
-      !folder ||
-      folder.status !== "ACTIVE"
+      performer && (!folder ||
+      folder.status !== "ACTIVE")
     ) {
       return NextResponse.json(
         {
@@ -213,7 +212,7 @@ export async function POST(
       );
     }
 
-    if (!folder.parentId) {
+    if (folder && !folder.parentId) {
       return NextResponse.json(
         {
           success: false,
@@ -254,7 +253,7 @@ export async function POST(
         creatorId:
           creator.id,
         folderId:
-          folder.id,
+          folder?.id ?? null,
         originalFileName:
           fileName,
       }).first();
@@ -296,17 +295,9 @@ export async function POST(
         fileName,
       ) || "media";
 
-    const objectKey = [
-      "workspace",
-      workspaceMember.workspaceId,
-      "performer",
-      performer.id,
-      "library",
-      folder.id,
-      "media",
-      mediaId,
-      safeFileName,
-    ].join("/");
+    const objectKey = performer && folder
+      ? ['workspace', workspaceMember.workspaceId, 'performer', performer.id, 'library', folder.id, 'media', mediaId, safeFileName].join('/')
+      : ['workspace', workspaceMember.workspaceId, 'creator', creator.id, 'media', mediaId, safeFileName].join('/');
 
     const bucketName =
       getR2BucketName();
@@ -328,10 +319,7 @@ export async function POST(
             workspaceMember.workspaceId,
           creatorId:
             creator.id,
-          performerId:
-            performer.id,
-          folderId:
-            folder.id,
+          ...(performer && folder ? { performerId: performer.id, folderId: folder.id } : {}),
           originalFileName:
             encodeURIComponent(
               fileName,
@@ -372,7 +360,7 @@ export async function POST(
       creatorId:
         creator.id,
       folderId:
-        folder.id,
+        folder?.id ?? null,
 
       originalFileName:
         fileName,
@@ -423,7 +411,7 @@ export async function POST(
         null,
     });
 
-    await db.orm.public.MediaAssetPerformer.create({
+    if (performer) await db.orm.public.MediaAssetPerformer.create({
       workspaceId:
         workspaceMember.workspaceId,
       mediaAssetId:
@@ -438,10 +426,8 @@ export async function POST(
       objectKey,
       uploadId,
       bucketName,
-      performerId:
-        performer.id,
-      folderId:
-        folder.id,
+      performerId: performer?.id ?? null,
+      folderId: folder?.id ?? null,
     });
   } catch (error) {
     console.error(

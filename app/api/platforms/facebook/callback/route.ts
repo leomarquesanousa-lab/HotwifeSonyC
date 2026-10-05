@@ -71,7 +71,7 @@ function redirectToPlatforms(
   reason?: string,
 ) {
   const url = new URL(
-    "/en-US/onboarding/platforms",
+    "/onboarding/platforms",
     getBaseUrl(request),
   );
 
@@ -387,7 +387,7 @@ export async function GET(
     if (!session) {
       return NextResponse.redirect(
         new URL(
-          "/en-US/login",
+          "/login",
           getBaseUrl(request),
         ),
       );

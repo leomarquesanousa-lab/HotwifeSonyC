@@ -16,7 +16,7 @@ export default function OnboardingPage() {
   const router = useRouter();
 
   function continueSetup() {
-    router.push(`/${locale}/onboarding/workspace`);
+    router.push(`/onboarding/workspace`);
   }
 
   return (

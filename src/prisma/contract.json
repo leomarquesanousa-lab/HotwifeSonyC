@@ -96,6 +96,10 @@
       "model": "User",
       "namespace": "public"
     },
+    "videoProduct": {
+      "model": "VideoProduct",
+      "namespace": "public"
+    },
     "workspace": {
       "model": "Workspace",
       "namespace": "public"
@@ -4029,6 +4033,238 @@
               "table": "user"
             }
           },
+          "VideoProduct": {
+            "fields": {
+              "category": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "currency": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "featured": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "mediaAssetId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "priceCents": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "publishedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "slug": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "teaserMediaAssetId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "thumbnailMediaAssetId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "workspaceId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "mediaAsset": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "mediaAssetId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MediaAsset",
+                  "namespace": "public"
+                }
+              },
+              "teaserMediaAsset": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "teaserMediaAssetId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MediaAsset",
+                  "namespace": "public"
+                }
+              },
+              "thumbnailMediaAsset": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "thumbnailMediaAssetId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "MediaAsset",
+                  "namespace": "public"
+                }
+              },
+              "workspace": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "workspaceId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Workspace",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "category": {
+                  "column": "category"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "currency": {
+                  "column": "currency"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "featured": {
+                  "column": "featured"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "mediaAssetId": {
+                  "column": "mediaAssetId"
+                },
+                "priceCents": {
+                  "column": "priceCents"
+                },
+                "publishedAt": {
+                  "column": "publishedAt"
+                },
+                "slug": {
+                  "column": "slug"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "teaserMediaAssetId": {
+                  "column": "teaserMediaAssetId"
+                },
+                "thumbnailMediaAssetId": {
+                  "column": "thumbnailMediaAssetId"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "workspaceId": {
+                  "column": "workspaceId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "videoProduct"
+            }
+          },
           "Workspace": {
             "fields": {
               "createdAt": {
@@ -7722,6 +7958,227 @@
                 }
               ]
             },
+            "videoProduct": {
+              "columns": {
+                "category": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "currency": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "USD"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "featured": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "mediaAssetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "priceCents": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "publishedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "slug": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "DRAFT"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "teaserMediaAssetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "thumbnailMediaAssetId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "workspaceId": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "workspaceId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "videoProduct"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "workspace"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "mediaAssetId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "videoProduct"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "mediaAsset"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "teaserMediaAssetId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "videoProduct"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "mediaAsset"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "thumbnailMediaAssetId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "videoProduct"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "mediaAsset"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "mediaAssetId"
+                  ],
+                  "name": "videoProduct_mediaAssetId_idx_523c8890",
+                  "prefix": "videoProduct_mediaAssetId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status",
+                    "publishedAt"
+                  ],
+                  "name": "videoProduct_status_publishedAt_idx_4d4b1960",
+                  "prefix": "videoProduct_status_publishedAt_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "teaserMediaAssetId"
+                  ],
+                  "name": "videoProduct_teaserMediaAssetId_idx_18deabb8",
+                  "prefix": "videoProduct_teaserMediaAssetId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "thumbnailMediaAssetId"
+                  ],
+                  "name": "videoProduct_thumbnailMediaAssetId_idx_907f6177",
+                  "prefix": "videoProduct_thumbnailMediaAssetId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "workspaceId"
+                  ],
+                  "name": "videoProduct_workspaceId_idx_ba65f874",
+                  "prefix": "videoProduct_workspaceId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": [
+                {
+                  "columns": [
+                    "slug"
+                  ]
+                }
+              ]
+            },
             "workspace": {
               "columns": {
                 "createdAt": {
@@ -7903,10 +8360,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e80392bdce746abf03970fe033403ffc1457071f57040cab1e97a4426352deeb"
+    "storageHash": "fa7b1d3dba4a93a989ea586faa866864a3f51e32a1e0ba119be6b53a2bda2717"
   },
   "execution": {
-    "executionHash": "8cef4ce1bb5f3b24beb1f55e099b8d4dc989d68a0b0636099811de8bef95f3b0",
+    "executionHash": "1f4a7ffbcd57d3854c927bf4a6a774c7c9e2c2fb6024cdcbc4e1f0e5160357c4",
     "mutations": {
       "defaults": [
         {
@@ -8333,6 +8790,32 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "user"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "videoProduct"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "videoProduct"
           }
         },
         {

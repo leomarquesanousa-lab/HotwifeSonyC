@@ -94,7 +94,7 @@ export default function CreatorsOnboardingPage() {
     }
 
     router.push(
-      `/${locale}/onboarding/platforms`,
+      `/onboarding/platforms`,
     );
   }
 
@@ -107,7 +107,7 @@ export default function CreatorsOnboardingPage() {
               type="button"
               onClick={() =>
                 router.push(
-                  `/${locale}/onboarding/workspace`,
+                  `/onboarding/workspace`,
                 )
               }
               className="flex items-center gap-2 text-sm text-white/40 transition hover:text-white/70"

@@ -212,7 +212,7 @@ export default function ForgotPasswordPage() {
             </form>
 
             <a
-              href={`/${locale}/login`}
+              href={`/login`}
               className="mt-6 flex items-center justify-center gap-2 text-xs text-white/40 transition hover:text-white/70"
             >
               <ArrowLeft className="h-3.5 w-3.5" />

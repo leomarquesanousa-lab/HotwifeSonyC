@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     if (!session) {
       return NextResponse.redirect(
-        new URL("/en-US/login", getBaseUrl(request)),
+        new URL("/login", getBaseUrl(request)),
       );
     }
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/en-US/onboarding/platforms?facebook=error&reason=config",
+          "/onboarding/platforms?facebook=error&reason=config",
           getBaseUrl(request),
         ),
       );
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/en-US/onboarding/platforms?facebook=error&reason=workspace",
+          "/onboarding/platforms?facebook=error&reason=workspace",
           getBaseUrl(request),
         ),
       );
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(
         new URL(
-          "/en-US/onboarding/platforms?facebook=error&reason=creator",
+          "/onboarding/platforms?facebook=error&reason=creator",
           getBaseUrl(request),
         ),
       );
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(
       new URL(
-        "/en-US/onboarding/platforms?facebook=error&reason=server",
+        "/onboarding/platforms?facebook=error&reason=server",
         getBaseUrl(request),
       ),
     );

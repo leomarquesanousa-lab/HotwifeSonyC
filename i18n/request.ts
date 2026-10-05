@@ -24,19 +24,8 @@ export type Locale =
   (typeof locales)[number];
 
 export default getRequestConfig(
-  async ({ requestLocale }) => {
-    let locale =
-      await requestLocale;
-
-    if (
-      !locale ||
-      !locales.includes(
-        locale as Locale,
-      )
-    ) {
-      locale =
-        "en-US";
-    }
+  async () => {
+    const locale = "en-US";
 
     const baseMessages = (
       await import(

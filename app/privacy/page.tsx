@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="mt-6 text-center text-xs text-white/25">
           <Link
-            href="/en-US/login"
+            href="/login"
             className="transition hover:text-white/60"
           >
             Return to Creator Platform

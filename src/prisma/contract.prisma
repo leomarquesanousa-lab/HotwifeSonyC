@@ -1,6 +1,36 @@
 // use prisma-next
 
 namespace public {
+  model VideoProduct {
+    id                    String @id @default(uuid())
+    workspaceId           String
+    mediaAssetId          String
+    teaserMediaAssetId     String?
+    thumbnailMediaAssetId  String?
+    title                 String
+    slug                  String @unique
+    description           String
+    priceCents            Int
+    currency              String @default("USD")
+    category              String
+    featured              Boolean @default(false)
+    status                String @default("DRAFT")
+    publishedAt           TimestamptzString?
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace @relation(fields: [workspaceId], references: [id])
+    mediaAsset            MediaAsset @relation("VideoProductFullMedia", fields: [mediaAssetId], references: [id])
+    teaserMediaAsset       MediaAsset? @relation("VideoProductTeaserMedia", fields: [teaserMediaAssetId], references: [id])
+    thumbnailMediaAsset    MediaAsset? @relation("VideoProductThumbnailMedia", fields: [thumbnailMediaAssetId], references: [id])
+
+    @@index([workspaceId])
+    @@index([mediaAssetId])
+    @@index([teaserMediaAssetId])
+    @@index([thumbnailMediaAssetId])
+    @@index([status, publishedAt])
+  }
+
   model User {
     id                       String   @id @default(uuid())
     email                    String   @unique

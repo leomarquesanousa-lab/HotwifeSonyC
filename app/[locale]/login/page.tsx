@@ -76,17 +76,10 @@ export default function LoginPage() {
     }
   }
 
-  function changeLanguage(
-    newLocale: string,
-  ) {
-    router.push(
-      `/${newLocale}/login`,
-    );
-  }
 
   function openForgotPassword() {
     router.push(
-      `/${locale}/forgot-password`,
+      `/forgot-password`,
     );
   }
 
@@ -223,14 +216,14 @@ export default function LoginPage() {
         "ONBOARDING"
       ) {
         window.location.replace(
-          `/${locale}/onboarding`,
+          `/onboarding`,
         );
 
         return;
       }
 
       window.location.replace(
-        `/${locale}/app`,
+        `/app`,
       );
     } catch {
       
@@ -354,67 +347,6 @@ export default function LoginPage() {
                   )}
                 </span>
               </div>
-
-              <select
-                value={
-                  locale
-                }
-                onChange={(
-                  event,
-                ) =>
-                  changeLanguage(
-                    event.target.value,
-                  )
-                }
-                className="ml-auto rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/70 outline-none"
-              >
-
-                <option
-                  value="en-US"
-                  className="bg-[#10141e]"
-                >
-                  {common(
-                    "english",
-                  )}
-                </option>
-
-                <option
-                  value="pt-BR"
-                  className="bg-[#10141e]"
-                >
-                  {common(
-                    "portuguese",
-                  )}
-                </option>
-
-                <option
-                  value="es-ES"
-                  className="bg-[#10141e]"
-                >
-                  {common(
-                    "spanish",
-                  )}
-                </option>
-
-                <option
-                  value="fr-FR"
-                  className="bg-[#10141e]"
-                >
-                  {common(
-                    "french",
-                  )}
-                </option>
-
-                <option
-                  value="cs-CZ"
-                  className="bg-[#10141e]"
-                >
-                  {common(
-                    "czech",
-                  )}
-                </option>
-
-              </select>
 
             </div>
 
@@ -592,7 +524,7 @@ export default function LoginPage() {
               {" "}
 
               <a
-                href={`/${locale}/sign-up`}
+                href={`/sign-up`}
                 className="font-medium text-white/80 hover:text-white"
               >
                 {t(

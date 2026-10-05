@@ -101,7 +101,7 @@ export default function VerifyEmailPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    router.push(`/${locale}/login`)
+                    router.push(`/login`)
                   }
                   className="mt-7 w-full rounded-xl bg-white px-4 py-3.5 text-sm font-semibold text-[#080b12] transition hover:bg-white/90"
                 >
@@ -124,12 +124,12 @@ export default function VerifyEmailPage() {
                   {message}
                 </p>
 
-                <a className="block mt-4 text-blue-300" href={`/${locale}/resend-verification`}>{t("resendVerification")}</a>
+                <a className="block mt-4 text-blue-300" href={`/resend-verification`}>{t("resendVerification")}</a>
 
                 <button
                   type="button"
                   onClick={() =>
-                    router.push(`/${locale}/login`)
+                    router.push(`/login`)
                   }
                   className="mt-7 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-white/[0.07]"
                 >

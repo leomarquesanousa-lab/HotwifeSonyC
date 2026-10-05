@@ -140,7 +140,7 @@ export default function TermsOfServicePage() {
           </Link>
 
           <Link
-            href="/en-US/login"
+            href="/login"
             className="transition hover:text-white/60"
           >
             Return to Creator Platform

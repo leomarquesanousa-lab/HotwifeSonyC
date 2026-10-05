@@ -935,7 +935,7 @@ function PerformerCard({
         </div>
 
         <Link
-          href={`/${locale}/app/performers/${performer.id}`}
+          href={`/app/performers/${performer.id}`}
           className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-blue-500/20 bg-blue-500/[0.06] px-2.5 text-[9px] font-medium text-blue-300 transition hover:border-blue-500/35 hover:bg-blue-500/[0.1] hover:text-blue-200"
         >
           <FileText className="h-3 w-3" />
