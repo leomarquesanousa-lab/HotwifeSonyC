@@ -27,6 +27,6 @@ export async function authEmailTemplate(
   return {
     subject: t("subject"),
     text: [t("heading"), ...lines, url].join("\n\n"),
-    html: `<!doctype html><html lang="en"><body style="background:#080b12;color:#fff;font-family:Arial,sans-serif;padding:32px"><main style="max-width:560px;margin:auto"><p>Creator Platform</p><h1>${escapeHtml(t("heading"))}</h1>${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}<p><a style="color:#60a5fa" href="${escapeHtml(url)}">${escapeHtml(t("button"))}</a></p></main></body></html>`,
+    html: `<!doctype html><html lang="en"><body style="background:#080b12;color:#fff;font-family:Arial,sans-serif;padding:32px"><main style="max-width:560px;margin:auto"><img src="${escapeHtml(new URL("/logo-hotwifesonyc.png", url).href)}" alt="HotwifeSonyC" width="180" style="height:auto"/><h1>${escapeHtml(t("heading"))}</h1>${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}<p><a style="color:#60a5fa" href="${escapeHtml(url)}">${escapeHtml(t("button"))}</a></p></main></body></html>`,
   };
 }

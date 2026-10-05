@@ -239,7 +239,7 @@ export default function OnboardingCheckPage() {
                 </h1>
 
                 <p className="mt-2 max-w-[600px] text-sm leading-6 text-white/40">
-                  Review your setup and enter your Creator Platform workspace.
+                  Review your setup and enter your HotwifeSonyC workspace.
                 </p>
               </div>
             </div>

@@ -79,7 +79,7 @@ export const PLATFORM_CATALOG: PlatformCatalogItem[] = [
     code: "LOYALFANS",
     name: "LoyalFans",
     description:
-      "Extend your distribution workflow to another creator platform.",
+      "Expand your connected publishing options.",
     connectionMethod: "PENDING",
     availability: "INTEGRATION_PENDING",
     officialApi: false,

@@ -57,17 +57,17 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     const duplicate = await tx.orm.public.VideoProduct.where({ slug: input.slug }).first();
     if (duplicate && duplicate.id !== id) throw new StoreError('This slug is already in use.', 409);
     const full = await tx.orm.public.MediaAsset.where({ id: input.mediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first();
-    if (!full || !full.contentType.startsWith('video/')) throw new StoreError('Choose an uploaded video from this workspace.');
+    if (!full || !full.contentType.startsWith('video/')) throw new StoreError('Upload a full video and wait for it to finish before saving.');
     if (await tx.orm.public.VideoProduct.where({ teaserMediaAssetId: full.id }).first()) throw new StoreError('This video is already used as a public teaser. Choose a separate full video.');
     if (input.teaserMediaAssetId) {
       if (input.teaserMediaAssetId === full.id) throw new StoreError('The teaser must be a separate video.');
       const teaser = await tx.orm.public.MediaAsset.where({ id: input.teaserMediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first();
-      if (!teaser || !teaser.contentType.startsWith('video/')) throw new StoreError('Choose an uploaded teaser from this workspace.');
+      if (!teaser || !teaser.contentType.startsWith('video/')) throw new StoreError('Wait for the teaser upload to finish before saving.');
       if (await tx.orm.public.VideoProduct.where({ mediaAssetId: teaser.id }).first()) throw new StoreError('A full product video cannot be used as a public teaser.');
     }
     if (input.thumbnailMediaAssetId) {
       const cover = await tx.orm.public.MediaAsset.where({ id: input.thumbnailMediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'IMAGE' }).first();
-      if (!cover || !['image/jpeg', 'image/png', 'image/webp'].includes(cover.contentType)) throw new StoreError('Choose a JPEG, PNG, or WebP image from this workspace.');
+      if (!cover || !['image/jpeg', 'image/png', 'image/webp'].includes(cover.contentType)) throw new StoreError('Upload a JPEG, PNG, or WebP cover and wait for it to finish before saving.');
     }
     const data = { ...input, publishedAt: input.status === 'PUBLISHED' ? input.publishedAt ?? new Date().toISOString() : input.publishedAt };
     if (!id) return tx.orm.public.VideoProduct.create({ ...data, workspaceId });

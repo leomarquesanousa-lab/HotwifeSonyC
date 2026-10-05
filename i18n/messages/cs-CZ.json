@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Creator Platform",
+    "appName": "HotwifeSonyC",
     "continue": "Pokračovat",
     "cancel": "Zrušit",
     "save": "Uložit",
@@ -348,7 +348,7 @@
     "scheduleUnavailableShort": "Publikování nyní je dostupné. Plánování pro ManyVids zatím není podporováno.",
     "olderVideoNeedsMetadata": "Toto starší video vyžaduje před publikováním získání metadat.",
     "removeSchedule": "Zrušit plánování",
-    "internalScheduleHelp": "Creator Platform zahájí publikování v naplánovaný čas. Nahrávání a zpracování mohou dostupnost zpozdit.",
+    "internalScheduleHelp": "HotwifeSonyC zahájí publikování v naplánovaný čas. Nahrávání a zpracování mohou dostupnost zpozdit.",
     "scheduleTimezone": "Data a časy používají časové pásmo vašeho účtu: {timeZone}.",
     "scheduleSaved": "Publikování ManyVids naplánováno ({timeZone}). Video zatím nebylo nahráno ani publikováno.",
     "preparingSchedule": "Ukládání plánu…",

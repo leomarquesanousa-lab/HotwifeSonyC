@@ -1,6 +1,26 @@
 // use prisma-next
 
 namespace public {
+  model Purchase {
+    id              String @id @default(uuid())
+    userId          String
+    videoProductId  String
+    status          String @default("PENDING")
+    amountCents     Int
+    currency        String @default("USD")
+    createdAt       TimestamptzString @default(now())
+    updatedAt       temporal.updatedAtString()
+
+    user            User @relation(fields: [userId], references: [id])
+    videoProduct    VideoProduct @relation(fields: [videoProductId], references: [id])
+
+    @@index([userId, status])
+    @@index([videoProductId])
+    @@index([userId, videoProductId], unique: true, where: "status IN ('PENDING', 'PAID')", name: "purchase_active_unique")
+    @@check(expression: "status IN ('PENDING', 'PAID', 'CANCELED', 'REFUNDED')", name: "purchase_status_valid")
+    @@check(expression: "\"amountCents\" >= 0", name: "purchase_amount_nonnegative")
+  }
+
   model VideoProduct {
     id                    String @id @default(uuid())
     workspaceId           String

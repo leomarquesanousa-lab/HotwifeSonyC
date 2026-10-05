@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Creator Platform",
+    "appName": "HotwifeSonyC",
     "continue": "Continuar",
     "cancel": "Cancelar",
     "save": "Guardar",
@@ -337,7 +337,7 @@
     "scheduleUnavailableShort": "Publicar ahora está disponible. La programación aún no está disponible para ManyVids.",
     "olderVideoNeedsMetadata": "Este video antiguo necesita extraer sus metadatos antes de publicarlo.",
     "removeSchedule": "Eliminar programación",
-    "internalScheduleHelp": "Creator Platform inicia la publicación a la hora programada. La carga y el procesamiento pueden retrasar su disponibilidad.",
+    "internalScheduleHelp": "HotwifeSonyC inicia la publicación a la hora programada. La carga y el procesamiento pueden retrasar su disponibilidad.",
     "scheduleTimezone": "Las fechas y horas usan la zona de tu cuenta: {timeZone}.",
     "scheduleSaved": "Publicación ManyVids programada ({timeZone}). Todavía no se ha subido ni publicado ningún vídeo.",
     "preparingSchedule": "Guardando programación...",

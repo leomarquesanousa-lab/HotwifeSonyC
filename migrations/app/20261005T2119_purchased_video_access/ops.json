@@ -1,0 +1,281 @@
+[
+  {
+    "id": "table.purchase",
+    "label": "Create table \"purchase\"",
+    "summary": "Creates table \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"purchase\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"purchase\"",
+        "sql": "CREATE TABLE \"public\".\"purchase\" (\n  \"amountCents\" int4 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"currency\" text DEFAULT 'USD' NOT NULL,\n  \"id\" text NOT NULL,\n  \"status\" text DEFAULT 'PENDING' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" text NOT NULL,\n  \"videoProductId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"purchase_amount_nonnegative_9ba6fead\" CHECK (\"amountCents\" >= 0),\n  CONSTRAINT \"purchase_status_valid_e1b666af\" CHECK (status IN ('PENDING', 'PAID', 'CANCELED', 'REFUNDED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"purchase\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.purchase.purchase_active_unique_046bd2f8",
+    "label": "Create index \"purchase_active_unique_046bd2f8\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "purchase_active_unique_046bd2f8",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"purchase_active_unique_046bd2f8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_active_unique_046bd2f8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"purchase_active_unique_046bd2f8\"",
+        "sql": "CREATE UNIQUE INDEX \"purchase_active_unique_046bd2f8\" ON \"public\".\"purchase\" (\"userId\", \"videoProductId\") WHERE (status IN ('PENDING', 'PAID'))",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"purchase_active_unique_046bd2f8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_active_unique_046bd2f8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.purchase.purchase_userId_idx_a489d58a",
+    "label": "Create index \"purchase_userId_idx_a489d58a\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "purchase_userId_idx_a489d58a",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"purchase_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"purchase_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"purchase_userId_idx_a489d58a\" ON \"public\".\"purchase\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"purchase_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.purchase.purchase_userId_status_idx_e4a128ba",
+    "label": "Create index \"purchase_userId_status_idx_e4a128ba\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "purchase_userId_status_idx_e4a128ba",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"purchase_userId_status_idx_e4a128ba\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_userId_status_idx_e4a128ba\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"purchase_userId_status_idx_e4a128ba\"",
+        "sql": "CREATE INDEX \"purchase_userId_status_idx_e4a128ba\" ON \"public\".\"purchase\" (\"userId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"purchase_userId_status_idx_e4a128ba\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_userId_status_idx_e4a128ba\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.purchase.purchase_videoProductId_idx_77e8a66c",
+    "label": "Create index \"purchase_videoProductId_idx_77e8a66c\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "purchase_videoProductId_idx_77e8a66c",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"purchase_videoProductId_idx_77e8a66c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"purchase_videoProductId_idx_77e8a66c\"",
+        "sql": "CREATE INDEX \"purchase_videoProductId_idx_77e8a66c\" ON \"public\".\"purchase\" (\"videoProductId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"purchase_videoProductId_idx_77e8a66c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"purchase_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.purchase.purchase_userId_fkey",
+    "label": "Add foreign key \"purchase_userId_fkey\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "purchase_userId_fkey",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"purchase_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "purchase_userId_fkey",
+          "public",
+          "\"public\".\"purchase\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"purchase_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"purchase\"\nADD CONSTRAINT \"purchase_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"user\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"purchase_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "purchase_userId_fkey",
+          "public",
+          "\"public\".\"purchase\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.purchase.purchase_videoProductId_fkey",
+    "label": "Add foreign key \"purchase_videoProductId_fkey\" on \"purchase\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "purchase_videoProductId_fkey",
+        "table": "purchase"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"purchase_videoProductId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "purchase_videoProductId_fkey",
+          "public",
+          "\"public\".\"purchase\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"purchase_videoProductId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"purchase\"\nADD CONSTRAINT \"purchase_videoProductId_fkey\"\nFOREIGN KEY (\"videoProductId\")\nREFERENCES \"public\".\"videoProduct\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"purchase_videoProductId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "purchase_videoProductId_fkey",
+          "public",
+          "\"public\".\"purchase\""
+        ]
+      }
+    ]
+  }
+]

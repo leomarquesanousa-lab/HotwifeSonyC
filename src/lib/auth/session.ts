@@ -17,6 +17,11 @@ export async function getCurrentSession() {
 
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
+  return getSessionFromToken(sessionToken);
+}
+
+export async function getSessionFromToken(sessionToken: string | undefined) {
+
   if (!sessionToken) {
     return null;
   }

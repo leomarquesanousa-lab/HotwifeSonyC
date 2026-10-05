@@ -1,14 +1,19 @@
 ﻿import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import { requireSession } from '@/src/lib/auth/session';
+import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
+import { AuthError } from '@/src/lib/auth/request';
 import { db } from '@/src/prisma/db';
 
 export const getAdminContext = cache(async (locale: string) => {
-  const auth = await requireSession();
-  if (!auth) redirect(`/login`);
-  const membership = await db.orm.public.WorkspaceMember.where({ userId: auth.user.id }).first();
-  const workspace = membership ? await db.orm.public.Workspace.where({ id: membership.workspaceId, status: 'ACTIVE' }).select('id','name').first() : null;
+  let auth;
+  try { auth = await requireAdministrativeAccess(); }
+  catch (error) {
+    if (error instanceof AuthError && error.status === 401) redirect('/login');
+    if (error instanceof AuthError && error.status === 403) redirect('/account');
+    throw error;
+  }
+  const {membership, workspace} = auth;
   return {
     user: { id: auth.user.id, firstName: auth.user.firstName, lastName: auth.user.lastName, email: auth.user.email, locale: auth.user.locale, timezone: auth.user.timezone },
     workspace, role: membership?.role ?? null,

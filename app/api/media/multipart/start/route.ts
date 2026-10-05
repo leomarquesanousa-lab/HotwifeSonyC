@@ -30,6 +30,7 @@ type MultipartStartRequest = {
   performerId?: string;
   folderId?: string;
   videoMetadata?: unknown;
+  source?: "STORE_PRODUCT";
 };
 
 const ALLOWED_CONTENT_TYPES =
@@ -259,7 +260,7 @@ export async function POST(
       }).first();
 
     if (
-      existingMedia &&
+      body.source !== "STORE_PRODUCT" && existingMedia &&
       existingMedia.status !==
         "FAILED" &&
       existingMedia.status !==

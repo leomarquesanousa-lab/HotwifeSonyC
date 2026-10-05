@@ -159,7 +159,7 @@ const UI: Record<SupportedLocale, UIStrings> = {
       MYM:
         "Prepare creator content for streamlined publishing and management.",
       LOYALFANS:
-        "Extend your distribution workflow to another creator platform.",
+        "Expand your connected publishing options.",
       INSTAGRAM:
         "Connect a professional Instagram account using the official Instagram Business Login.",
       FACEBOOK:
@@ -609,7 +609,7 @@ const FALLBACK_PLATFORMS: PlatformItem[] = [
     code: "LOYALFANS",
     name: "LoyalFans",
     description:
-      "Extend your distribution workflow to another creator platform.",
+      "Expand your connected publishing options.",
     connectionMethod: "PENDING",
     availability: "INTEGRATION_PENDING",
     officialApi: false,

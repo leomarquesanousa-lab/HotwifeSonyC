@@ -5,13 +5,14 @@ import {
   SESSION_COOKIE_NAME,
 } from "./session";
 import { getRequestIp, checkAuthRateLimit } from "./rate-limit";
-import { parseAuthBody, authFailure } from "./request";
+import { AuthError, parseAuthBody, authFailure } from "./request";
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { verifyPassword } from "./password-hash";
 import { db } from "@/src/prisma/db";
+import { ADMIN_ROLES } from './admin-access';
 
 const loginSchema = z.object({
   email: z
@@ -95,36 +96,13 @@ export async function login(request: Request) {
       );
     }
 
+    // Legacy pending accounts may sign in with their existing valid password.
     if (user.status === "PENDING") {
-      await db.orm.public.LoginAttempt.create({
-        email,
-        ipAddress,
-        userAgent,
-        successful: false,
-      });
-
-      await db.orm.public.AuditLog.create({
-        userId: user.id,
-        action: "LOGIN_BLOCKED",
-        entityType: "USER",
-        entityId: user.id,
-        ipAddress,
-        userAgent,
-        metadata: {
-          reason: "EMAIL_NOT_VERIFIED",
-        },
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "EMAIL_NOT_VERIFIED",
-          message: "Please verify your email before signing in.",
-        },
-        {
-          status: 403,
-        },
-      );
+      const activated = await db.orm.public.User.where({
+        id: user.id, status: 'PENDING', passwordHash: user.passwordHash,
+      }).updateAndCount({ status: 'ACTIVE' });
+      if (activated !== 1) throw new AuthError('ACCOUNT_UNAVAILABLE', 403);
+      user.status = 'ACTIVE';
     }
 
     if (user.status !== "ACTIVE") {
@@ -149,38 +127,13 @@ export async function login(request: Request) {
 
     const membership = await db.orm.public.WorkspaceMember.where({
       userId: user.id,
-    }).first();
+    }).where(member => member.role.in([...ADMIN_ROLES])).first();
 
-    if (!membership) {
-      await db.orm.public.AuditLog.create({
-        userId: user.id,
-        action: "LOGIN_BLOCKED",
-        entityType: "USER",
-        entityId: user.id,
-        ipAddress,
-        userAgent,
-        metadata: {
-          reason: "WORKSPACE_MEMBERSHIP_NOT_FOUND",
-        },
-      });
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: "WORKSPACE_NOT_FOUND",
-          message: "No workspace is associated with this account.",
-        },
-        {
-          status: 403,
-        },
-      );
-    }
-
-    let workspace = await db.orm.public.Workspace.where({
+    const workspace = membership ? await db.orm.public.Workspace.where({
       id: membership.workspaceId,
-    }).first();
+    }).first() : null;
 
-    if (!workspace) {
+    if (membership && !workspace) {
       await db.orm.public.AuditLog.create({
         userId: user.id,
         action: "LOGIN_BLOCKED",
@@ -205,7 +158,7 @@ export async function login(request: Request) {
       );
     }
 
-    if (workspace.status !== "ACTIVE") {
+    if (workspace && workspace.status !== "ACTIVE") {
       await db.orm.public.AuditLog.create({
         userId: user.id,
         action: "LOGIN_BLOCKED",
@@ -231,62 +184,7 @@ export async function login(request: Request) {
       );
     }
 
-    /*
-     * Backward compatibility:
-     *
-     * Accounts created before the final onboarding
-     * step existed may already have a real Creator
-     * and connected platforms while
-     * onboardingCompletedAt is still null.
-     *
-     * In that case, mark the workspace as complete
-     * automatically instead of forcing the user
-     * through onboarding again.
-     */
-
-    if (!workspace.onboardingCompletedAt) {
-      const [existingCreator, connectedPlatform] = await Promise.all([
-        db.orm.public.Creator.where({
-          workspaceId: workspace.id,
-          status: "ACTIVE",
-        }).first(),
-
-        db.orm.public.PlatformAccount.where({
-          workspaceId: workspace.id,
-          status: "CONNECTED",
-        }).first(),
-      ]);
-
-      if (existingCreator && connectedPlatform) {
-        const completedAt = new Date().toISOString();
-
-        await db.orm.public.Workspace.where({
-          id: workspace.id,
-        }).update({
-          onboardingStatus: "COMPLETE",
-          onboardingCompletedAt: completedAt,
-        });
-
-        workspace = await db.orm.public.Workspace.where({
-          id: workspace.id,
-        }).first();
-
-        if (!workspace) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: "WORKSPACE_NOT_FOUND",
-              message: "Unable to reload your workspace.",
-            },
-            {
-              status: 500,
-            },
-          );
-        }
-      }
-    }
-
-    const destination = workspace.onboardingCompletedAt ? "APP" : "ONBOARDING";
+    const destination = workspace ? "APP" : "ACCOUNT";
 
     const { session, sessionToken } = await createSession(
       user.id,
@@ -310,9 +208,9 @@ export async function login(request: Request) {
       userAgent,
       metadata: {
         clientType,
-        workspaceId: workspace.id,
+        workspaceId: workspace?.id ?? null,
         destination,
-        onboardingStatus: workspace.onboardingStatus,
+        onboardingStatus: workspace?.onboardingStatus ?? null,
       },
     });
 
@@ -330,14 +228,14 @@ export async function login(request: Request) {
           locale: user.locale,
         },
 
-        workspace: {
+        workspace: workspace ? {
           id: workspace.id,
           name: workspace.name,
           type: workspace.type,
           status: workspace.status,
           onboardingStatus: workspace.onboardingStatus,
           onboardingCompleted: Boolean(workspace.onboardingCompletedAt),
-        },
+        } : null,
       },
       {
         status: 200,

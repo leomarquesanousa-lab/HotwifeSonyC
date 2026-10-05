@@ -83,6 +83,7 @@ type UploadManagerContextValue = {
     target: UploadTarget,
   ) => AddFilesResult;
   startAll: () => Promise<void>;
+  uploadProductFile: (file: File) => Promise<string>;
   cancelUpload: (
     localId: string,
   ) => void;
@@ -261,6 +262,7 @@ export function UploadManagerProvider({
     useRef<
       Record<string, boolean>
     >({});
+  const uploadRunning = useRef(false);
 
   const updateUpload =
     useCallback(
@@ -330,6 +332,7 @@ export function UploadManagerProvider({
     useCallback(
       async (
         upload: ManagedUpload,
+        storeProduct = false,
       ) => {
         const {
           localId,
@@ -390,6 +393,7 @@ export function UploadManagerProvider({
                     fileSize:
                       file.size,
                     videoMetadata,
+                    source: storeProduct ? "STORE_PRODUCT" : undefined,
                     performerId,
                     folderId,
                   }),
@@ -841,7 +845,7 @@ export function UploadManagerProvider({
             ),
           );
 
-          return true;
+          return currentMediaId;
         } catch (error) {
           const message =
             error instanceof Error
@@ -873,6 +877,7 @@ export function UploadManagerProvider({
               }),
             );
 
+            if (storeProduct) throw new Error("Upload cancelled.");
             return false;
           }
 
@@ -934,6 +939,9 @@ export function UploadManagerProvider({
             }),
           );
 
+          if (storeProduct) throw new Error(message === "VIDEO_METADATA_READ_FAILED" ? metadataT("readFailed")
+            : message === "VIDEO_METADATA_REQUIRED" ? metadataT("required")
+            : message === "MEDIA_SIZE_MISMATCH" ? metadataT("sizeMismatch") : message);
           return false;
         }
       },
@@ -1056,7 +1064,7 @@ export function UploadManagerProvider({
   const startAll =
     useCallback(
       async () => {
-        if (isUploading) {
+        if (isUploading || uploadRunning.current) {
           return;
         }
 
@@ -1076,6 +1084,7 @@ export function UploadManagerProvider({
           return;
         }
 
+        uploadRunning.current = true;
         setIsUploading(
           true,
         );
@@ -1120,6 +1129,7 @@ export function UploadManagerProvider({
             ),
           );
         } finally {
+          uploadRunning.current = false;
           setIsUploading(
             false,
           );
@@ -1131,6 +1141,26 @@ export function UploadManagerProvider({
         uploadOne,
       ],
     );
+
+  const uploadProductFile = useCallback(async (file: File) => {
+    if (uploadRunning.current) throw new Error("Wait for the current upload to finish.");
+    if (!ACCEPTED_TYPES.includes(file.type) || file.size <= 0) throw new Error("Choose a supported, non-empty file.");
+    const upload: ManagedUpload = {
+      localId: crypto.randomUUID(), file, mediaId: null, uploadId: null,
+      progress: 0, uploadedBytes: 0, status: "READY", error: "",
+    };
+    uploadRunning.current = true;
+    setIsUploading(true);
+    setUploads(current => [...current, upload]);
+    try {
+      const mediaId = await uploadOne(upload, true);
+      if (!mediaId) throw new Error("Unable to upload this file.");
+      return mediaId;
+    } finally {
+      uploadRunning.current = false;
+      setIsUploading(false);
+    }
+  }, [uploadOne]);
 
   const cancelUpload =
     useCallback(
@@ -1286,6 +1316,7 @@ export function UploadManagerProvider({
         overallProgress,
         addFiles,
         startAll,
+        uploadProductFile,
         cancelUpload,
         removeUpload,
         clearCompleted,
@@ -1299,6 +1330,7 @@ export function UploadManagerProvider({
         overallProgress,
         addFiles,
         startAll,
+        uploadProductFile,
         cancelUpload,
         removeUpload,
         clearCompleted,

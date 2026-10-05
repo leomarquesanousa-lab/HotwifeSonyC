@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Creator Platform",
+    "appName": "HotwifeSonyC",
     "continue": "Continuar",
     "cancel": "Cancelar",
     "save": "Salvar",
@@ -337,7 +337,7 @@
     "scheduleUnavailableShort": "Publicar agora está disponível. O agendamento ManyVids ainda está indisponível.",
     "olderVideoNeedsMetadata": "Este vídeo antigo precisa de extração de metadados antes da publicação.",
     "removeSchedule": "Remover agendamento",
-    "internalScheduleHelp": "A Creator Platform inicia a publicação no horário agendado. Upload e processamento podem atrasar a disponibilidade.",
+    "internalScheduleHelp": "A HotwifeSonyC inicia a publicação no horário agendado. Upload e processamento podem atrasar a disponibilidade.",
     "scheduleTimezone": "Datas e horários usam o fuso da sua conta: {timeZone}.",
     "scheduleSaved": "Publicação ManyVids agendada ({timeZone}). Nenhum vídeo foi enviado ou publicado ainda.",
     "preparingSchedule": "Salvando agendamento...",

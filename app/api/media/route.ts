@@ -148,6 +148,18 @@ export async function GET(
           ),
       );
 
+    const products = await db.orm.public.VideoProduct.where({ workspaceId: workspaceMember.workspaceId })
+      .select('id', 'title', 'status', 'publishedAt', 'mediaAssetId', 'teaserMediaAssetId', 'thumbnailMediaAssetId').all();
+    const productLinks = new Map<string, { id: string; title: string; status: string; publishedAt: string | null; role: string }[]>();
+    for (const product of products) {
+      for (const [mediaId, role] of [[product.mediaAssetId, 'Full Video'], [product.teaserMediaAssetId, 'Teaser'], [product.thumbnailMediaAssetId, 'Cover']] as const) {
+        if (!mediaId) continue;
+        const links = productLinks.get(mediaId) ?? [];
+        links.push({ id: product.id, title: product.title, status: product.status, publishedAt: product.publishedAt, role });
+        productLinks.set(mediaId, links);
+      }
+    }
+
     return NextResponse.json({
       success: true,
 
@@ -188,6 +200,7 @@ export async function GET(
 
             status:
               media.status,
+            products: productLinks.get(media.id) ?? [],
 
             durationSeconds:
               media.durationSeconds,

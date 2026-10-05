@@ -1,18 +1,13 @@
 "use client";
-import { ResendVerification } from "@/src/components/auth/ResendVerification";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Building2,
   Check,
   Eye,
   EyeOff,
   Loader2,
-  ShieldCheck,
-  UserRound,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 type AccountType = "CREATOR" | "AGENCY";
 
@@ -20,7 +15,13 @@ export default function SignUpPage() {
   const t = useTranslations("auth");
   const common = useTranslations("common");
   const locale = useLocale();
-  const router = useRouter();
+
+  const [returnTo, setReturnTo] = useState('/app');
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next === '/account' || next === '/my-videos') setReturnTo(next);
+  }, []);
+  const customerQuery = returnTo === '/app' ? '' : '?next=' + encodeURIComponent(returnTo);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -29,8 +30,6 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [accountType, setAccountType] =
-    useState<AccountType>("CREATOR");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] =
@@ -41,7 +40,6 @@ export default function SignUpPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
-  const [offerResend, setOfferResend] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   function clearMessages() {
@@ -134,7 +132,6 @@ export default function SignUpPage() {
           email: email.trim(),
           password,
           confirmPassword,
-          accountType,
           acceptedTerms: true,
           locale,
         }),
@@ -144,10 +141,8 @@ export default function SignUpPage() {
 
       if (!response.ok) {
         if (data?.error === "RATE_LIMITED") { setErrorMessage(t("rateLimited")); return; }
-        if (data?.error === "VERIFICATION_EMAIL_FAILED") { setAccountCreated(true); setOfferResend(true); setErrorMessage(t("verificationDeliveryFailed")); return; }
         if (data?.error === "EMAIL_ALREADY_EXISTS") {
           setErrorMessage(t("emailAlreadyExists"));
-          setOfferResend(true);
           return;
         }
 
@@ -161,11 +156,9 @@ export default function SignUpPage() {
       }
 
       setAccountCreated(true);
-      setSuccessMessage(t("accountCreated"));
+      setSuccessMessage("Your account is ready. Opening your dashboard...");
 
-      window.setTimeout(() => {
-        router.push(`/login`);
-      }, 1500);
+      window.location.replace(returnTo === "/my-videos" ? returnTo : "/account");
     } catch {
       
 
@@ -177,67 +170,10 @@ export default function SignUpPage() {
 
   return (
     <main className="min-h-screen bg-[#080b12] text-white">
-      <div className="min-h-screen grid lg:grid-cols-[1.05fr_0.95fr]">
-        <section className="hidden lg:flex relative overflow-hidden border-r border-white/10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(37,99,235,0.16),transparent_35%),radial-gradient(circle_at_80%_75%,rgba(124,58,237,0.14),transparent_35%)]" />
-
-          <div className="relative z-10 flex flex-col justify-between w-full p-12 xl:p-16">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center">
-                <ShieldCheck className="h-5 w-5 text-blue-400" />
-              </div>
-
-              <div>
-                <div className="font-semibold tracking-tight">
-                  {common("appName")}
-                </div>
-
-                <div className="text-xs text-white/40">
-                  {t("protectedByDesign")}
-                </div>
-              </div>
-            </div>
-
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/60">
-                <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-                {t("secureAccess")}
-              </div>
-
-              <h1 className="mt-6 text-4xl xl:text-5xl font-semibold tracking-[-0.04em] leading-[1.05]">
-                {t("registrationHeadline")}
-              </h1>
-
-              <p className="mt-5 max-w-lg text-base leading-7 text-white/50">
-                {t("registrationDescription")}
-              </p>
-
-              <div className="mt-10 grid gap-4">
-                <Feature text={t("encryptedAccess")} />
-                <Feature text={t("privateWorkspace")} />
-                <Feature text={t("secureCreatorManagement")} />
-              </div>
-            </div>
-
-            <div className="text-xs text-white/30">
-              {t("secureFooter")}
-            </div>
-          </div>
-        </section>
-
+      <div className="min-h-screen">
         <section className="flex items-center justify-center px-5 py-10 sm:px-8">
           <div className="w-full max-w-[540px]">
-            <div className="flex items-center justify-between mb-10">
-              <div className="lg:hidden flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center">
-                  <ShieldCheck className="h-4 w-4 text-blue-400" />
-                </div>
-
-                <span className="font-semibold">
-                  {common("appName")}
-                </span>
-              </div>
-            </div>
+            <a href="/" className="mb-10 inline-block"><img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/></a>
 
             <div className="mb-8">
               <h2 className="text-3xl font-semibold tracking-[-0.03em]">
@@ -292,36 +228,6 @@ export default function SignUpPage() {
                   clearMessages();
                 }}
               />
-
-              <div>
-                <label className="mb-2 block text-sm text-white/65">
-                  {t("accountType")}
-                </label>
-
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <AccountTypeCard
-                    active={accountType === "CREATOR"}
-                    icon={<UserRound className="h-5 w-5" />}
-                    title={t("creator")}
-                    description={t("creatorDescription")}
-                    onClick={() => {
-                      setAccountType("CREATOR");
-                      clearMessages();
-                    }}
-                  />
-
-                  <AccountTypeCard
-                    active={accountType === "AGENCY"}
-                    icon={<Building2 className="h-5 w-5" />}
-                    title={t("agency")}
-                    description={t("agencyDescription")}
-                    onClick={() => {
-                      setAccountType("AGENCY");
-                      clearMessages();
-                    }}
-                  />
-                </div>
-              </div>
 
               <ControlledPasswordField
                 label={t("password")}
@@ -422,12 +328,11 @@ export default function SignUpPage() {
                   : t("createAccount")}
               </button>
             </form>
-            {offerResend && <ResendVerification email={email} />}
 
             <div className="mt-8 text-center text-sm text-white/40">
               {t("alreadyHaveAccount")}{" "}
               <a
-                href={`/login`}
+                href={`/login${customerQuery}`}
                 className="font-medium text-white/80 hover:text-white"
               >
                 {t("signInHere")}
@@ -437,18 +342,6 @@ export default function SignUpPage() {
         </section>
       </div>
     </main>
-  );
-}
-
-function Feature({ text }: { text: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm text-white/55">
-      <div className="h-7 w-7 rounded-lg border border-white/10 bg-white/[0.04] flex items-center justify-center">
-        <Check className="h-3.5 w-3.5 text-blue-400" />
-      </div>
-
-      {text}
-    </div>
   );
 }
 
@@ -544,47 +437,5 @@ function ControlledPasswordField({
         </button>
       </div>
     </div>
-  );
-}
-
-function AccountTypeCard({
-  active,
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-left rounded-xl border p-4 transition ${
-        active
-          ? "border-blue-500/60 bg-blue-500/[0.08]"
-          : "border-white/10 bg-white/[0.025] hover:bg-white/[0.045]"
-      }`}
-    >
-      <div
-        className={`mb-3 ${
-          active ? "text-blue-400" : "text-white/40"
-        }`}
-      >
-        {icon}
-      </div>
-
-      <div className="text-sm font-medium text-white">
-        {title}
-      </div>
-
-      <div className="mt-1.5 text-xs leading-5 text-white/35">
-        {description}
-      </div>
-    </button>
   );
 }

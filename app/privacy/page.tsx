@@ -8,7 +8,7 @@ export default function PrivacyPolicyPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-300/70">
-            Creator Platform
+            <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/>
           </div>
 
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="space-y-7 rounded-[20px] border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
           <Section title="1. Overview">
-            Creator Platform provides tools for creators, agencies, and authorized team members to manage media, connected platforms, publishing workflows, documents, and related account activity.
+            HotwifeSonyC provides tools for creators, agencies, and authorized team members to manage media, connected platforms, publishing workflows, documents, and related account activity.
           </Section>
 
           <Section title="2. Information we collect">
@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="9. Third-party services">
-            Third-party platforms and services have their own privacy policies and terms. Creator Platform is not responsible for the privacy practices of those third parties.
+            Third-party platforms and services have their own privacy policies and terms. HotwifeSonyC is not responsible for the privacy practices of those third parties.
           </Section>
 
           <Section title="10. Changes to this policy">
@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
           </Section>
 
           <Section title="11. Contact">
-            For privacy questions or data requests, contact the operator of Creator Platform through the support contact provided within the application.
+            For privacy questions or data requests, contact the operator of HotwifeSonyC through the support contact provided within the application.
           </Section>
         </div>
 
@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
             href="/login"
             className="transition hover:text-white/60"
           >
-            Return to Creator Platform
+            Return to HotwifeSonyC
           </Link>
         </div>
       </div>

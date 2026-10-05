@@ -1,13 +1,12 @@
 "use client";
-import { ResendVerification } from "@/src/components/auth/ResendVerification";
 
 import {
   FormEvent,
   useState,
+  useEffect,
 } from "react";
 
 import {
-  useLocale,
   useTranslations,
 } from "next-intl";
 
@@ -15,8 +14,6 @@ import {
   Eye,
   EyeOff,
   Loader2,
-  LockKeyhole,
-  ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -24,7 +21,6 @@ import {
 } from "next/navigation";
 
 export default function LoginPage() {
-  const [needsVerification, setNeedsVerification] = useState(false);
   const t =
     useTranslations(
       "auth",
@@ -35,11 +31,15 @@ export default function LoginPage() {
       "common",
     );
 
-  const locale =
-    useLocale();
-
   const router =
     useRouter();
+
+  const [returnTo, setReturnTo] = useState('/app');
+  useEffect(() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next === '/account' || next === '/my-videos') setReturnTo(next);
+  }, []);
+  const customerQuery = returnTo === '/app' ? '' : '?next=' + encodeURIComponent(returnTo);
 
   const [
     email,
@@ -79,7 +79,7 @@ export default function LoginPage() {
 
   function openForgotPassword() {
     router.push(
-      `/forgot-password`,
+      `/forgot-password${customerQuery}`,
     );
   }
 
@@ -159,17 +159,6 @@ export default function LoginPage() {
           return;
         }
 
-        if (
-          data?.error ===
-          "EMAIL_NOT_VERIFIED"
-        ) {
-          setErrorMessage(
-            t("emailNotVerified"),
-          );
-          setNeedsVerification(true);
-
-          return;
-        }
 
         if (
           data?.error ===
@@ -211,19 +200,9 @@ export default function LoginPage() {
         return;
       }
 
-      if (
-        data?.destination ===
-        "ONBOARDING"
-      ) {
-        window.location.replace(
-          `/onboarding`,
-        );
-
-        return;
-      }
 
       window.location.replace(
-        `/app`,
+        returnTo !== "/app" ? returnTo : data.destination === "APP" ? "/app" : "/account",
       );
     } catch {
       
@@ -240,115 +219,12 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-[#080b12] text-white">
-      <div className="grid min-h-screen lg:grid-cols-[1.05fr_0.95fr]">
-
-        <section className="relative hidden overflow-hidden border-r border-white/10 lg:flex">
-          <img
-            src="/monitor_hero.png"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
-          />
-
-          <div className="absolute inset-0 bg-[#080b12]/30" />
-
-          <div className="absolute inset-0 bg-gradient-to-r from-[#080b12]/80 via-[#080b12]/35 to-[#080b12]/10" />
-
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080b12]/75 via-transparent to-[#080b12]/25" />
-
-          <div className="relative z-10 flex w-full flex-col justify-between p-12 xl:p-16">
-
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-black/30 backdrop-blur-md">
-                <ShieldCheck className="h-5 w-5 text-blue-400" />
-              </div>
-
-              <div>
-                <div className="font-semibold tracking-tight">
-                  {common(
-                    "appName",
-                  )}
-                </div>
-
-                <div className="text-xs text-white/50">
-                  {t(
-                    "protectedByDesign",
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="max-w-xl">
-
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-xs text-white/70 backdrop-blur-md">
-                <LockKeyhole className="h-3.5 w-3.5 text-blue-400" />
-
-                {t(
-                  "secureAccess",
-                )}
-              </div>
-
-              <h1 className="mt-6 text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.8)] xl:text-5xl">
-                {t(
-                  "loginHeadline",
-                )}
-              </h1>
-
-              <p className="mt-5 max-w-lg text-base leading-7 text-white/70 drop-shadow-[0_3px_14px_rgba(0,0,0,0.8)]">
-                {t(
-                  "loginDescription",
-                )}
-              </p>
-
-              <div className="mt-10 grid gap-4">
-
-                <Feature
-                  text={t(
-                    "encryptedAccess",
-                  )}
-                />
-
-                <Feature
-                  text={t(
-                    "privateWorkspace",
-                  )}
-                />
-
-                <Feature
-                  text={t(
-                    "secureCreatorManagement",
-                  )}
-                />
-
-              </div>
-            </div>
-
-            <div className="text-xs text-white/45">
-              {t(
-                "secureFooter",
-              )}
-            </div>
-
-          </div>
-        </section>
+      <div className="min-h-screen">
 
         <section className="flex items-center justify-center px-5 py-10 sm:px-8">
           <div className="w-full max-w-[460px]">
 
-            <div className="mb-10 flex items-center justify-between">
-
-              <div className="flex items-center gap-3 lg:hidden">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-                  <ShieldCheck className="h-4 w-4 text-blue-400" />
-                </div>
-
-                <span className="font-semibold">
-                  {common(
-                    "appName",
-                  )}
-                </span>
-              </div>
-
-            </div>
+            <a href="/" className="mb-10 inline-block"><img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/></a>
 
             <div className="mb-8">
 
@@ -513,7 +389,6 @@ export default function LoginPage() {
               </button>
 
             </form>
-            {needsVerification && <ResendVerification email={email} />}
 
             <div className="mt-8 text-center text-sm text-white/40">
 
@@ -524,7 +399,7 @@ export default function LoginPage() {
               {" "}
 
               <a
-                href={`/sign-up`}
+                href={`/sign-up${customerQuery}`}
                 className="font-medium text-white/80 hover:text-white"
               >
                 {t(
@@ -539,27 +414,5 @@ export default function LoginPage() {
 
       </div>
     </main>
-  );
-}
-
-function Feature({
-  text,
-}: {
-  text: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 text-sm text-white/70">
-
-      <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-black/30 backdrop-blur-md">
-        <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-      </div>
-
-      <span className="drop-shadow-[0_3px_12px_rgba(0,0,0,0.8)]">
-        {
-          text
-        }
-      </span>
-
-    </div>
   );
 }

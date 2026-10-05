@@ -30,7 +30,7 @@ export default function OnboardingPage() {
 
             <div>
               <div className="font-semibold tracking-tight">
-                Creator Platform
+                <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/>
               </div>
 
               <div className="text-xs text-white/35">

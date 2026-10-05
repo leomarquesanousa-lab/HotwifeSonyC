@@ -8,7 +8,7 @@ export default function DataDeletionPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-300/70">
-            Creator Platform
+            <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/>
           </div>
 
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">
@@ -22,29 +22,29 @@ export default function DataDeletionPage() {
 
         <div className="space-y-7 rounded-[20px] border border-white/[0.08] bg-white/[0.02] p-6 sm:p-8">
           <Section title="1. Overview">
-            Creator Platform respects your right to request deletion of
+            HotwifeSonyC respects your right to request deletion of
             personal information and data associated with your account,
             including information received from supported third-party
             platforms.
           </Section>
 
           <Section title="2. Requesting deletion">
-            To request deletion of your Creator Platform account and associated
-            personal data, contact the Creator Platform support team using the
+            To request deletion of your HotwifeSonyC account and associated
+            personal data, contact the HotwifeSonyC support team using the
             support contact provided within the application. Clearly state that
             you are requesting deletion of your account and personal data.
           </Section>
 
           <Section title="3. Information to include">
             To help us identify your account and process the request securely,
-            include the email address associated with your Creator Platform
+            include the email address associated with your HotwifeSonyC
             account and any additional information reasonably necessary to
             verify account ownership. Do not send passwords, access tokens, or
             other sensitive credentials.
           </Section>
 
           <Section title="4. Instagram and Meta data">
-            If you connected an Instagram or Meta account to Creator Platform,
+            If you connected an Instagram or Meta account to HotwifeSonyC,
             you may request deletion of data received through that connection.
             This may include account identifiers, profile information,
             connection records, access credentials, publishing activity, and
@@ -56,7 +56,7 @@ export default function DataDeletionPage() {
             Platform when that option is available in the application.
             Disconnecting an account prevents future access using that
             connection but does not necessarily delete historical data already
-            stored by Creator Platform.
+            stored by HotwifeSonyC.
           </Section>
 
           <Section title="6. What will be deleted">
@@ -90,7 +90,7 @@ export default function DataDeletionPage() {
           </Section>
 
           <Section title="10. Third-party platforms">
-            Deleting data from Creator Platform does not automatically delete
+            Deleting data from HotwifeSonyC does not automatically delete
             information stored independently by Instagram, Meta, or other
             third-party services. Users should use the privacy and account
             management tools provided directly by those services when they
@@ -98,7 +98,7 @@ export default function DataDeletionPage() {
           </Section>
 
           <Section title="11. Confirmation">
-            After a valid deletion request has been processed, Creator Platform
+            After a valid deletion request has been processed, HotwifeSonyC
             may provide confirmation that the request has been completed or
             information about any data that must legally or operationally be
             retained.
@@ -106,7 +106,7 @@ export default function DataDeletionPage() {
 
           <Section title="12. Contact">
             For account or data deletion requests, contact the operator of
-            Creator Platform through the support contact provided within the
+            HotwifeSonyC through the support contact provided within the
             application.
           </Section>
         </div>
@@ -130,7 +130,7 @@ export default function DataDeletionPage() {
             href="/login"
             className="transition hover:text-white/60"
           >
-            Return to Creator Platform
+            Return to HotwifeSonyC
           </Link>
         </div>
       </div>

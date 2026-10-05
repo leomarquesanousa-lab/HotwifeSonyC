@@ -1,7 +1,7 @@
 ﻿import { redirect } from 'next/navigation';
 import StoreVideos from '@/src/components/store/StoreVideos';
 import { listStoreMedia, listStoreProducts, requireStoreAccess, StoreError } from '@/src/lib/store/admin';
-export const metadata = { title: 'Videos for Sale · Creator Platform' };
+export const metadata = { title: 'Videos for Sale · HotwifeSonyC' };
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   let workspaceId: string;

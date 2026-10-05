@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import {
   CheckCircle2,
-  Film,
   FileVideo2,
   Loader2,
   Menu,
@@ -32,7 +31,7 @@ import {
 
 import { futureStoreNavigation, getStoreNavigation } from './store-navigation';
 
-export default function AppHeader() {
+export default function AppHeader({ role }: { role?: string }) {
   const params =
     useParams<{
       locale: string;
@@ -83,7 +82,7 @@ export default function AppHeader() {
     0 ||
     isUploading;
 
-  const mobileLinks = getStoreNavigation(locale, t).map(item => ({ label: item.label, href: item.path }));
+  const mobileLinks = getStoreNavigation(locale, t, role).map(item => ({ label: item.label, href: item.path }));
 
   return (
     <>
@@ -93,21 +92,7 @@ export default function AppHeader() {
             href={`/app`}
             className="flex w-auto shrink-0 items-center gap-3 lg:w-[194px]"
           >
-            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 shadow-[0_0_25px_rgba(99,102,241,0.2)]">
-              <Film className="relative z-10 h-4 w-4 text-white" />
-
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-            </div>
-
-            <div className="hidden sm:block">
-              <div className="text-[13px] font-semibold tracking-[-0.02em] text-white">
-                HotwifeSonyC
-              </div>
-
-              <div className="mt-0.5 text-[8px] uppercase tracking-[0.16em] text-white/25">
-                VIDEO STORE ADMIN
-              </div>
-            </div>
+            <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-12 w-auto max-w-[160px] object-contain sm:max-w-[180px]"/>
           </Link>
 
           <div className="hidden h-7 w-px bg-white/[0.06] lg:block" />

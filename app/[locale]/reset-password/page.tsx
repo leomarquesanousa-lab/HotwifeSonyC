@@ -10,7 +10,6 @@ import {
   EyeOff,
   Loader2,
   LockKeyhole,
-  ShieldCheck,
 } from "lucide-react";
 
 import { useLocale, useTranslations } from "next-intl";
@@ -147,21 +146,7 @@ export default function ResetPasswordPage() {
       <div className="flex min-h-screen items-center justify-center px-5 py-10">
         <div className="w-full max-w-[460px]">
 
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-              <ShieldCheck className="h-5 w-5 text-blue-400" />
-            </div>
-
-            <div>
-              <div className="font-semibold">
-                Creator Platform
-              </div>
-
-              <div className="text-xs text-white/35">
-                Secure account recovery
-              </div>
-            </div>
-          </div>
+          <a href="/" className="mb-8 inline-block"><img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/></a>
 
           <div className="rounded-[20px] border border-white/10 bg-white/[0.025] p-6 sm:p-8">
 

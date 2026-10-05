@@ -1,2 +1,4 @@
-import { requestRecovery } from "@/src/lib/auth/recovery";
-export function POST(request: Request) { return requestRecovery(request, "resend"); }
+import { NextResponse } from "next/server";
+export function POST() {
+  return NextResponse.json({ success: false, error: "ENDPOINT_RETIRED" }, { status: 410 });
+}

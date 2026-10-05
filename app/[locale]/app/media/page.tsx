@@ -22,7 +22,6 @@ import {
   Play,
   Plus,
   Search,
-  Send,
   Share2,
   Tag,
   Trash2,
@@ -48,6 +47,7 @@ type MediaAsset = {
   fileSize: string;
   mediaType: string;
   status: string;
+  products?: { id: string; title: string; status: string; role: string; publishedAt: string | null }[];
   durationSeconds: number | null;
   width: number | null;
   height: number | null;
@@ -181,22 +181,11 @@ export default function MediaLibraryPage() {
   </main>;
 }
 
-function publishMediaNow(
-  mediaId: string,
-) {
-  const pathname =
-    window.location.pathname;
-
-  const targetPath =
-    pathname.replace(
-      /\/media\/?$/,
-      "/distribution",
-    );
-
-  window.location.href =
-    `${targetPath}?mediaId=${encodeURIComponent(
-      mediaId,
-    )}`;
+function ProductLinks({ media }: { media: MediaAsset }) {
+  return <div className="flex max-w-64 flex-wrap gap-1">{media.products?.map(product => {
+    const status = product.status === 'PUBLISHED' && product.publishedAt && new Date(product.publishedAt).getTime() > Date.now() ? 'Scheduled' : product.status === 'PUBLISHED' ? 'Published' : product.status === 'ARCHIVED' ? 'Archived' : 'Draft';
+    return <a key={product.id + product.role} href="/app/store/videos" className="rounded bg-violet-500/10 px-2 py-1 text-[10px] text-violet-200" title={product.title}>{status} / {product.role} / {product.title}</a>;
+  })}</div>;
 }
 
 async function shareMedia(
@@ -848,6 +837,7 @@ function MediaTile({
                 media.status
               }
             />
+            <ProductLinks media={media}/>
 
             {categories
               .slice(
@@ -918,25 +908,11 @@ function MediaTile({
             </button>
           </div>
 
-          <div className="mt-1.5 grid grid-cols-[1fr_auto_auto_auto] gap-1.5">
+          <div className="mt-1.5 grid grid-cols-[1fr_auto_auto] gap-1.5">
             {media.status ===
               "UPLOADED" && (
               <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    publishMediaNow(
-                      media.id,
-                    )
-                  }
-                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-blue-500/12 px-2 text-[9px] font-semibold text-blue-300 transition hover:bg-blue-500/20"
-                >
-                  <Send className="h-3 w-3" />
 
-                  {t(
-                    "publishNow",
-                  )}
-                </button>
 
                 <button
                   type="button"
@@ -1142,6 +1118,7 @@ function MediaListRow({
             media.status
           }
         />
+            <ProductLinks media={media}/>
 
         <button
           type="button"
@@ -1159,19 +1136,7 @@ function MediaListRow({
         {media.status ===
           "UPLOADED" && (
           <>
-            <button
-              type="button"
-              onClick={() =>
-                publishMediaNow(
-                  media.id,
-                )
-              }
-              className="rounded-lg bg-blue-500/12 px-2.5 py-1.5 text-[9px] font-semibold text-blue-300 transition hover:bg-blue-500/20"
-            >
-              {t(
-                "publishNow",
-              )}
-            </button>
+
 
             <button
               type="button"
@@ -1334,25 +1299,8 @@ function MediaViewerModal({
               media.status
             }
           />
+            <ProductLinks media={media}/>
 
-          {media.status ===
-            "UPLOADED" && (
-            <button
-              type="button"
-              onClick={() =>
-                publishMediaNow(
-                  media.id,
-                )
-              }
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-500/12 px-3 text-[9px] font-semibold text-blue-300 transition hover:bg-blue-500/20"
-            >
-              <Send className="h-3 w-3" />
-
-              {t(
-                "publishNow",
-              )}
-            </button>
-          )}
         </div>
       </div>
     </div>
