@@ -14,7 +14,7 @@ type DatabaseClient =
 const requestDatabase =
   new AsyncLocalStorage<DatabaseClient>();
 
-let developmentDatabase:
+let nodeDatabase:
   DatabaseClient | null = null;
 
 export function createDatabase(
@@ -55,21 +55,19 @@ function getActiveDatabase():
   }
 
   /*
-   * Normal Next.js local development does not pass through the
-   * Cloudflare Worker entry point. Keep a development-only client
-   * so `npm run dev` continues to work.
+   * Traditional Node.js servers (next dev and next start) do not
+   * pass through worker/index.ts. Reuse a process-local client there.
    *
-   * Production Cloudflare requests must always have a request-scoped
+   * Cloudflare requests must always have a request-scoped
    * database supplied by worker/index.ts. Falling back to a global
-   * production client would recreate the Worker socket-reuse problem
+   * client would recreate the Worker socket-reuse problem
    * this module is designed to prevent.
    */
   if (
-    process.env.NODE_ENV !==
-    "production"
+    !("WebSocketPair" in globalThis)
   ) {
-    if (!developmentDatabase) {
-      developmentDatabase =
+    if (!nodeDatabase) {
+      nodeDatabase =
         createDatabase(
           process.env
             .DATABASE_URL ??
@@ -77,7 +75,7 @@ function getActiveDatabase():
         );
     }
 
-    return developmentDatabase;
+    return nodeDatabase;
   }
 
   throw new Error(
