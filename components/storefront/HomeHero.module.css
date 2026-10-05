@@ -1,0 +1,88 @@
+.hero:global(.store-hero) {
+  height: 560px;
+  aspect-ratio: auto;
+  min-height: 0;
+  justify-content: flex-end;
+}
+
+.hero:global(.store-hero) :global(.store-hero-art) img {
+  object-fit: cover !important;
+  object-position: 25% top !important;
+}
+
+.hero:global(.store-hero)::after {
+  background: linear-gradient(90deg, transparent 38%, #08090c18 52%, #08090c70 68%, #08090cb8 86%, #08090cd1);
+}
+
+.hero:global(.store-hero) :global(.store-hero-copy) {
+  width: 38%;
+  padding: 24px 5% 100px 0;
+  text-align: right;
+}
+
+.hero:global(.store-hero) :global(.store-hero-copy) h1 {
+  font-size: clamp(34px, 4vw, 52px);
+  letter-spacing: -2px;
+}
+
+.hero:global(.store-hero) :global(.store-actions) :global(.store-button) {
+  padding: 12px 14px;
+}
+
+.hero:global(.store-hero) :global(.store-actions),
+.hero:global(.store-hero) :global(.store-hero-note) {
+  justify-content: flex-end;
+}
+
+.hero:global(.store-hero) :global(.store-hero-feature) {
+  right: 5%;
+  bottom: 24px;
+  padding: 14px 18px;
+}
+
+@media (max-width: 1100px) {
+  .hero:global(.store-hero) :global(.store-hero-copy) {
+    width: 48%;
+  }
+
+  .hero:global(.store-hero) :global(.store-hero-note) { flex-wrap: wrap; }
+}
+
+@media (max-width: 640px) {
+  .hero:global(.store-hero) {
+    align-items: center;
+  }
+
+  .hero:global(.store-hero)::after {
+    background: linear-gradient(90deg, transparent, #08090c18 25%, #08090c85 55%, #08090ccc);
+  }
+
+  .hero:global(.store-hero) :global(.store-hero-copy) {
+    width: 58%;
+    padding: 24px 5% 110px 0;
+  }
+
+  .hero:global(.store-hero) :global(.store-hero-copy) h1 {
+    font-size: 28px;
+    letter-spacing: -1px;
+    margin: 16px 0;
+  }
+
+  .hero:global(.store-hero) :global(.store-hero-copy) p {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .hero:global(.store-hero) :global(.store-actions) {
+    margin-top: 20px;
+  }
+
+  .hero:global(.store-hero) :global(.store-hero-feature) {
+    left: auto;
+    right: 5%;
+    width: 53%;
+    min-width: 0;
+    bottom: 18px;
+    padding: 12px;
+  }
+}

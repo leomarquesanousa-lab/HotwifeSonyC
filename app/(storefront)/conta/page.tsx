@@ -1,30 +1,38 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ArrowUpRight, Film, UserRound } from 'lucide-react';
+import { Film, UserRound } from 'lucide-react';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import SignOutButton from '@/components/storefront/SignOutButton';
 import PurchasedVideos from '@/components/storefront/PurchasedVideos';
 import { listPurchasedVideos } from '@/src/lib/store/purchases';
+import styles from './account.module.css';
 export const metadata = { title: 'My Account' };
 export default async function Page() {
   const auth = await getCurrentSession();
   if (!auth) redirect('/login?next=/account');
   const name = [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ');
   const videos = await listPurchasedVideos();
-  return <section className="store-section store-page">
-    <span className="store-eyebrow">YOUR PERSONAL SPACE</span><h1>My Account</h1>
-    <p className="store-lead">Your account and your personal video collection.</p>
-    <nav className="store-account-nav"><Link href="/my-videos">Purchased Videos</Link><Link href="/account" aria-current="page">My Account</Link></nav>
-    <div className="store-account-grid">
-      <article className="store-purchase"><UserRound size={32}/><h2>Account Details</h2>
-        <dl><dt>Name</dt><dd>{name || 'Not provided'}</dd><dt>Email</dt><dd className="break-all">{auth.user.email}</dd></dl>
-        <SignOutButton/>
-      </article>
-      <article className="store-purchase"><Film size={32}/><h2>Your Video Library</h2>
-        <p>Watch your purchased videos in your personal library.</p>
-        <Link className="store-button" href="/my-videos">My Videos <ArrowUpRight size={18}/></Link>
-      </article>
-    </div>
-    <PurchasedVideos videos={videos}/>
+  return <section className={`store-section store-page ${styles.page}`}>
+    <header className={styles.heading}>
+      <h1>My Account</h1>
+      <p>Your details and your private collection.</p>
+    </header>
+    <section className={styles.details} aria-labelledby="account-details-title">
+      <div className={styles.detailsTitle}><UserRound size={20} aria-hidden="true"/><h2 id="account-details-title">Account Details</h2></div>
+      <dl className={styles.fields}>
+        <div><dt>Name</dt><dd>{name || 'Not provided'}</dd></div>
+        <div><dt>Email</dt><dd>{auth.user.email}</dd></div>
+      </dl>
+      <div className={styles.signOut}><SignOutButton/></div>
+    </section>
+    <section className={styles.library} aria-labelledby="purchased-videos-title">
+      <h2 id="purchased-videos-title">Purchased Videos</h2>
+      {videos.length ? <PurchasedVideos videos={videos}/> : <div className={styles.empty}>
+        <span className={styles.emptyIcon}><Film size={24} aria-hidden="true"/></span>
+        <h3>Your collection starts here.</h3>
+        <p>Your purchased videos will be ready to watch here.</p>
+        <Link className="store-button" href="/videos">Explore Videos</Link>
+      </div>}
+    </section>
   </section>;
 }
