@@ -1,0 +1,36 @@
+app/[locale]/onboarding/check/page.tsx:154:          "/api/onboarding/complete",
+app/[locale]/onboarding/creators/page.tsx:97:      `/${locale}/onboarding/platforms`,
+app/[locale]/onboarding/creators/page.tsx:110:                  `/${locale}/onboarding/workspace`,
+app/[locale]/onboarding/page.tsx:19:    router.push(`/${locale}/onboarding/workspace`);
+app/[locale]/onboarding/platforms/page.tsx:1268:      `/${locale}/onboarding/check`,
+app/[locale]/onboarding/platforms/page.tsx:1282:                  `/${locale}/onboarding/creators`,
+app/[locale]/onboarding/workspace/page.tsx:38:    router.push(`/${locale}/onboarding/creators`);
+app/api/platforms/facebook/callback/route.ts:56:    process.env.APP_URL?.trim();
+app/api/platforms/facebook/callback/route.ts:74:    "/en-US/onboarding/platforms",
+app/api/platforms/facebook/callback/route.ts:513:        .FACEBOOK_REDIRECT_URI
+app/api/platforms/facebook/connect/route.ts:19:  const configuredUrl = process.env.APP_URL?.trim();
+app/api/platforms/facebook/connect/route.ts:45:          "/en-US/onboarding/platforms?facebook=error&reason=config",
+app/api/platforms/facebook/connect/route.ts:52:      process.env.FACEBOOK_REDIRECT_URI?.trim() ||
+app/api/platforms/facebook/connect/route.ts:69:          "/en-US/onboarding/platforms?facebook=error&reason=workspace",
+app/api/platforms/facebook/connect/route.ts:85:          "/en-US/onboarding/platforms?facebook=error&reason=creator",
+app/api/platforms/facebook/connect/route.ts:161:        "/en-US/onboarding/platforms?facebook=error&reason=server",
+app/api/platforms/fanvue/callback/route.ts:208:    process.env.APP_URL;
+app/api/platforms/fanvue/callback/route.ts:212:      "APP_URL is missing.",
+app/api/platforms/fanvue/callback/route.ts:232:    "/en-US/onboarding/platforms",
+app/api/platforms/fanvue/callback/route.ts:356:        .FANVUE_REDIRECT_URI;
+app/api/platforms/fanvue/connect/route.ts:118:      process.env.FANVUE_REDIRECT_URI;
+app/api/platforms/instagram/callback/route.ts:162:    process.env.APP_URL;
+app/api/platforms/instagram/callback/route.ts:166:      "APP_URL is missing.",
+app/api/platforms/instagram/callback/route.ts:235:      : `/${locale}/onboarding/platforms`;
+app/api/platforms/instagram/callback/route.ts:590:        .INSTAGRAM_REDIRECT_URI;
+app/api/platforms/instagram/connect/route.ts:101:        .INSTAGRAM_REDIRECT_URI;
+docs/APIS.txt:10:INSTAGRAM_REDIRECT_URI=https://demo.maconfeccoes.com.br/api/platforms/instagram/callback
+docs/APIS.txt:16:FACEBOOK_REDIRECT_URI=https://demo.maconfeccoes.com.br/api/platforms/facebook/callback
+legacy-manyvids-browser/connect-route.ts:14:    process.env.APP_URL;
+legacy-manyvids-browser/connect-route.ts:18:      "APP_URL is missing.",
+src/lib/email/send-password-reset-email.ts:94:    process.env.APP_URL ||
+src/lib/email/send-verification-email.ts:81:    process.env.APP_URL || "http://localhost:3000";
+5:APP_URL="http://localhost:3000"
+9:FANVUE_REDIRECT_URI=https://demo.maconfeccoes.com.br/api/platforms/fanvue/callback
+14:INSTAGRAM_REDIRECT_URI=https://demo.maconfeccoes.com.br/api/platforms/instagram/callback
+17:FACEBOOK_REDIRECT_URI=https://demo.maconfeccoes.com.br/api/platforms/facebook/callback

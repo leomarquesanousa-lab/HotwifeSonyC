@@ -1,0 +1,631 @@
+// use prisma-next
+
+namespace public {
+  model User {
+    id                       String   @id @default(uuid())
+    email                    String   @unique
+    passwordHash             String
+    firstName                String?
+    lastName                 String?
+    status                   String   @default("PENDING")
+    emailVerifiedAt          TimestamptzString?
+    locale                   String   @default("en-US")
+    timezone                 String   @default("UTC")
+    createdAt                TimestamptzString @default(now())
+    updatedAt                temporal.updatedAtString()
+
+    memberships              WorkspaceMember[]
+    sessions                 Session[]
+    creators                 Creator[]
+    recoveryCodes            RecoveryCode[]
+    emailVerificationTokens  EmailVerificationToken[]
+    passwordResetTokens      PasswordResetToken[]
+    auditLogs                AuditLog[]
+    deletionRequests         AccountDeletionRequest[]
+  }
+
+  model Workspace {
+    id                    String   @id @default(uuid())
+    name                  String
+    type                  String   @default("CREATOR")
+    status                String   @default("ACTIVE")
+
+    onboardingStatus      String   @default("WELCOME")
+    onboardingCompletedAt TimestamptzString?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    members               WorkspaceMember[]
+    creators              Creator[]
+    platformAccounts      PlatformAccount[]
+    mediaAssets           MediaAsset[]
+    mediaCategories       MediaCategory[]
+    performers            Performer[]
+    performerDocuments    PerformerDocument[]
+    mediaAssetPerformers  MediaAssetPerformer[]
+    performerLibraryFolders PerformerLibraryFolder[]
+    agreements            Agreement[]
+    agreementSigners      AgreementSigner[]
+    agreementAuditEvents  AgreementAuditEvent[]
+    distributionJobs      DistributionJob[]
+    platformPublications  PlatformPublication[]
+  }
+
+  model WorkspaceMember {
+    id          String   @id @default(uuid())
+    workspaceId String
+    userId      String
+    role        String   @default("OPERATOR")
+    createdAt   TimestamptzString @default(now())
+    updatedAt   temporal.updatedAtString()
+
+    workspace Workspace @relation(fields: [workspaceId], references: [id])
+    user      User      @relation(fields: [userId], references: [id])
+
+    @@unique([workspaceId, userId])
+    @@index([workspaceId])
+    @@index([userId])
+  }
+
+  model Creator {
+    id          String   @id @default(uuid())
+    workspaceId String
+    ownerUserId String?
+    displayName String
+    legalName   String?
+    status      String   @default("ACTIVE")
+    createdAt   TimestamptzString @default(now())
+    updatedAt   temporal.updatedAtString()
+
+    workspace             Workspace              @relation(fields: [workspaceId], references: [id])
+    ownerUser             User?                  @relation(fields: [ownerUserId], references: [id])
+    platformAccounts      PlatformAccount[]
+    mediaAssets           MediaAsset[]
+    distributionJobs      DistributionJob[]
+    platformPublications  PlatformPublication[]
+
+    @@index([workspaceId])
+    @@index([ownerUserId])
+  }
+
+  model PlatformAccount {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    creatorId             String?
+
+    platform              String
+    status                String   @default("DISCONNECTED")
+
+    externalAccountId     String?
+    externalUsername      String?
+    externalDisplayName   String?
+
+    connectionType        String?
+    accessTokenEncrypted  String?
+    refreshTokenEncrypted String?
+    tokenExpiresAt        TimestamptzString?
+
+    lastVerifiedAt        TimestamptzString?
+    lastSyncAt            TimestamptzString?
+    lastErrorCode         String?
+    lastErrorMessage      String?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace              @relation(fields: [workspaceId], references: [id])
+    creator               Creator?               @relation(fields: [creatorId], references: [id])
+    platformPublications  PlatformPublication[]
+
+    @@index([workspaceId])
+    @@index([creatorId])
+    @@index([platform])
+    @@index([status])
+    @@unique([creatorId, platform, externalAccountId])
+  }
+
+  model MediaAsset {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    creatorId             String
+    folderId              String?
+
+    originalFileName      String
+    objectKey             String   @unique
+    bucketName            String
+    storageProvider       String   @default("R2")
+
+    contentType           String
+    fileSize              BigInt
+
+    mediaType             String   @default("VIDEO")
+    status                String   @default("UPLOADING")
+
+    durationSeconds       Int?
+    width                 Int?
+    height                Int?
+
+    thumbnailObjectKey    String?
+    objectEtag            String?
+
+    uploadCompletedAt     TimestamptzString?
+    processingStartedAt   TimestamptzString?
+    processingCompletedAt TimestamptzString?
+
+    lastErrorCode         String?
+    lastErrorMessage      String?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace               @relation(fields: [workspaceId], references: [id])
+    creator               Creator                 @relation(fields: [creatorId], references: [id])
+    folder                PerformerLibraryFolder? @relation(fields: [folderId], references: [id])
+    categories            MediaAssetCategory[]
+    performers            MediaAssetPerformer[]
+    distributionJobs      DistributionJob[]
+
+    @@index([workspaceId])
+    @@index([creatorId])
+    @@index([folderId])
+    @@index([status])
+    @@index([mediaType])
+    @@index([createdAt])
+  }
+
+  model MediaCategory {
+    id             String   @id @default(uuid())
+    workspaceId    String
+    name           String
+    normalizedName String
+
+    createdAt      TimestamptzString @default(now())
+    updatedAt      temporal.updatedAtString()
+
+    workspace      Workspace            @relation(fields: [workspaceId], references: [id])
+    mediaAssets    MediaAssetCategory[]
+
+    @@unique([workspaceId, normalizedName])
+    @@index([workspaceId])
+    @@index([name])
+    @@index([createdAt])
+  }
+
+  model MediaAssetCategory {
+    mediaAssetId String
+    categoryId   String
+
+    createdAt    TimestamptzString @default(now())
+
+    mediaAsset   MediaAsset    @relation(fields: [mediaAssetId], references: [id])
+    category     MediaCategory @relation(fields: [categoryId], references: [id])
+
+    @@id([mediaAssetId, categoryId])
+    @@index([categoryId])
+    @@index([createdAt])
+  }
+
+  model Performer {
+    id           String   @id @default(uuid())
+    workspaceId  String
+    displayName  String
+    legalName    String?
+    email        String?
+    phone        String?
+    dateOfBirth  String?
+    status       String   @default("ACTIVE")
+    notes        String?
+
+    createdAt    TimestamptzString @default(now())
+    updatedAt    temporal.updatedAtString()
+
+    workspace    Workspace             @relation(fields: [workspaceId], references: [id])
+    documents      PerformerDocument[]
+    agreements     Agreement[]
+    mediaAssets    MediaAssetPerformer[]
+    libraryFolders PerformerLibraryFolder[]
+
+    @@index([workspaceId])
+    @@index([displayName])
+    @@index([status])
+    @@index([createdAt])
+  }
+
+  model PerformerDocument {
+    id               String   @id @default(uuid())
+    workspaceId      String
+    performerId      String
+
+    documentType     String
+    title            String
+    status           String   @default("ACTIVE")
+
+    objectKey        String   @unique
+    bucketName       String
+    storageProvider  String   @default("R2")
+    contentType      String
+    fileSize         BigInt
+
+    documentNumber   String?
+    issuedAt         TimestamptzString?
+    expiresAt        TimestamptzString?
+    notes            String?
+
+    createdAt        TimestamptzString @default(now())
+    updatedAt        temporal.updatedAtString()
+
+    workspace        Workspace @relation(fields: [workspaceId], references: [id])
+    performer        Performer @relation(fields: [performerId], references: [id])
+
+    @@index([workspaceId])
+    @@index([performerId])
+    @@index([documentType])
+    @@index([status])
+    @@index([expiresAt])
+    @@index([createdAt])
+  }
+
+  model PerformerLibraryFolder {
+    id             String   @id @default(uuid())
+    workspaceId    String
+    performerId    String
+    parentId       String?
+
+    name           String
+    normalizedName String
+
+    folderType     String   @default("CUSTOM")
+    systemKey      String?
+    isSystem       Boolean  @default(false)
+    isRequired     Boolean  @default(false)
+    sortOrder      Int      @default(0)
+    status         String   @default("ACTIVE")
+
+    createdAt      TimestamptzString @default(now())
+    updatedAt      temporal.updatedAtString()
+
+    workspace      Workspace                @relation(fields: [workspaceId], references: [id])
+    performer      Performer                @relation(fields: [performerId], references: [id])
+    parent         PerformerLibraryFolder?  @relation("PerformerLibraryFolderHierarchy", fields: [parentId], references: [id])
+    children       PerformerLibraryFolder[] @relation("PerformerLibraryFolderHierarchy")
+    mediaAssets    MediaAsset[]
+
+    @@unique([performerId, parentId, normalizedName])
+    @@unique([performerId, systemKey])
+    @@index([workspaceId])
+    @@index([performerId])
+    @@index([parentId])
+    @@index([folderType])
+    @@index([isSystem])
+    @@index([isRequired])
+    @@index([sortOrder])
+    @@index([status])
+    @@index([createdAt])
+  }
+
+  model MediaAssetPerformer {
+    workspaceId  String
+    mediaAssetId String
+    performerId  String
+
+    createdAt    TimestamptzString @default(now())
+
+    workspace    Workspace  @relation(fields: [workspaceId], references: [id])
+    mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id])
+    performer    Performer  @relation(fields: [performerId], references: [id])
+
+    @@id([mediaAssetId, performerId])
+    @@index([workspaceId])
+    @@index([performerId])
+    @@index([createdAt])
+  }
+
+  model Agreement {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    performerId           String
+
+    templateKey           String   @default("CO_PERFORMER_RELEASE")
+    templateVersion       String   @default("MV_CO_MODEL_V12")
+    status                String   @default("DRAFT")
+
+    agreementType         String
+    contentDescription    String
+    agreementDate         String
+    governingLaw          String?
+    jurisdiction          String?
+
+    uploaderLegalName     String
+    uploaderEmail         String?
+    coPerformerLegalName  String
+    coPerformerEmail      String?
+    residentialAddress    String?
+
+    fieldSnapshot         Json?
+    consentVersion        String   @default("1")
+
+    unsignedPdfObjectKey  String?  @unique
+    signedPdfObjectKey    String?  @unique
+    auditPdfObjectKey     String?  @unique
+    bucketName            String?
+    storageProvider       String   @default("R2")
+    finalDocumentSha256   String?
+
+    sentAt                TimestamptzString?
+    completedAt           TimestamptzString?
+    voidedAt              TimestamptzString?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace             @relation(fields: [workspaceId], references: [id])
+    performer             Performer             @relation(fields: [performerId], references: [id])
+    signers               AgreementSigner[]
+    auditEvents           AgreementAuditEvent[]
+
+    @@index([workspaceId])
+    @@index([performerId])
+    @@index([status])
+    @@index([templateKey])
+    @@index([createdAt])
+  }
+
+  model AgreementSigner {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    agreementId           String
+
+    role                  String
+    legalName             String
+    email                 String
+    status                String   @default("PENDING")
+
+    signingTokenHash      String?  @unique
+    signingTokenExpiresAt TimestamptzString?
+
+    signatureMethod       String?
+    signatureObjectKey    String?  @unique
+    signatureText         String?
+
+    consentAccepted       Boolean  @default(false)
+    consentAcceptedAt     TimestamptzString?
+    viewedAt              TimestamptzString?
+    signedAt              TimestamptzString?
+
+    signerIpAddress       String?
+    signerUserAgent       String?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace @relation(fields: [workspaceId], references: [id])
+    agreement             Agreement @relation(fields: [agreementId], references: [id])
+    auditEvents           AgreementAuditEvent[]
+
+    @@unique([agreementId, role])
+    @@index([workspaceId])
+    @@index([agreementId])
+    @@index([status])
+    @@index([signingTokenExpiresAt])
+    @@index([createdAt])
+  }
+
+  model AgreementAuditEvent {
+    id          String   @id @default(uuid())
+    workspaceId String
+    agreementId String
+    signerId    String?
+
+    eventType   String
+    ipAddress   String?
+    userAgent   String?
+    metadata    Json?
+
+    createdAt   TimestamptzString @default(now())
+
+    workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+    agreement   Agreement        @relation(fields: [agreementId], references: [id])
+    signer      AgreementSigner? @relation(fields: [signerId], references: [id])
+
+    @@index([workspaceId])
+    @@index([agreementId])
+    @@index([signerId])
+    @@index([eventType])
+    @@index([createdAt])
+  }
+
+  model DistributionJob {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    creatorId             String
+    mediaAssetId          String
+
+    status                String   @default("DRAFT")
+    publishMode           String   @default("NOW")
+
+    defaultCaption        String?
+    scheduledAt           TimestamptzString?
+
+    startedAt             TimestamptzString?
+    completedAt           TimestamptzString?
+
+    lastErrorCode         String?
+    lastErrorMessage      String?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace              @relation(fields: [workspaceId], references: [id])
+    creator               Creator                @relation(fields: [creatorId], references: [id])
+    mediaAsset            MediaAsset             @relation(fields: [mediaAssetId], references: [id])
+    publications          PlatformPublication[]
+
+    @@index([workspaceId])
+    @@index([creatorId])
+    @@index([mediaAssetId])
+    @@index([status])
+    @@index([scheduledAt])
+    @@index([createdAt])
+  }
+
+  model PlatformPublication {
+    id                    String   @id @default(uuid())
+    workspaceId           String
+    creatorId             String
+    distributionJobId     String
+    platformAccountId     String
+
+    platform              String
+    status                String   @default("PENDING")
+
+    caption               String?
+    publishingOptions     Json?
+    scheduledAt           TimestamptzString?
+
+    externalPostId        String?
+    externalPostUrl       String?
+
+    attemptCount          Int      @default(0)
+
+    startedAt             TimestamptzString?
+    publishedAt           TimestamptzString?
+    failedAt              TimestamptzString?
+
+    lastErrorCode         String?
+    lastErrorMessage      String?
+
+    createdAt             TimestamptzString @default(now())
+    updatedAt             temporal.updatedAtString()
+
+    workspace             Workspace         @relation(fields: [workspaceId], references: [id])
+    creator               Creator           @relation(fields: [creatorId], references: [id])
+    distributionJob       DistributionJob   @relation(fields: [distributionJobId], references: [id])
+    platformAccount       PlatformAccount   @relation(fields: [platformAccountId], references: [id])
+
+    @@unique([distributionJobId, platformAccountId])
+
+    @@index([workspaceId])
+    @@index([creatorId])
+    @@index([distributionJobId])
+    @@index([platformAccountId])
+    @@index([platform])
+    @@index([status])
+    @@index([scheduledAt])
+  }
+
+  model Session {
+    id         String   @id @default(uuid())
+    userId     String
+    tokenHash  String   @unique
+    status     String   @default("ACTIVE")
+    ipAddress  String?
+    userAgent  String?
+    clientType String   @default("WEB")
+    expiresAt  TimestamptzString
+    createdAt  TimestamptzString @default(now())
+    lastSeenAt TimestamptzString @default(now())
+    revokedAt  TimestamptzString?
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([expiresAt])
+  }
+
+  model TwoFactorMethod {
+    id         String   @id @default(uuid())
+    userId     String   @unique
+    secret     String
+    enabled    Boolean  @default(false)
+    verifiedAt TimestamptzString?
+    createdAt  TimestamptzString @default(now())
+    updatedAt  temporal.updatedAtString()
+
+    user User @relation(fields: [userId], references: [id])
+  }
+
+  model RecoveryCode {
+    id        String   @id @default(uuid())
+    userId    String
+    codeHash  String
+    used      Boolean  @default(false)
+    createdAt TimestamptzString @default(now())
+    usedAt    TimestamptzString?
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+  }
+
+  model EmailVerificationToken {
+    id        String   @id @default(uuid())
+    userId    String
+    tokenHash String   @unique
+    expiresAt TimestamptzString
+    usedAt    TimestamptzString?
+    createdAt TimestamptzString @default(now())
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([expiresAt])
+  }
+
+  model PasswordResetToken {
+    id        String   @id @default(uuid())
+    userId    String
+    tokenHash String   @unique
+    expiresAt TimestamptzString
+    usedAt    TimestamptzString?
+    createdAt TimestamptzString @default(now())
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([expiresAt])
+  }
+
+  model LoginAttempt {
+    id         String   @id @default(uuid())
+    email      String
+    ipAddress  String?
+    userAgent  String?
+    successful Boolean  @default(false)
+    createdAt  TimestamptzString @default(now())
+
+    @@index([email])
+    @@index([ipAddress])
+    @@index([createdAt])
+  }
+
+  model AuditLog {
+    id         String   @id @default(uuid())
+    userId     String?
+    action     String
+    entityType String?
+    entityId   String?
+    ipAddress  String?
+    userAgent  String?
+    metadata   Json?
+    createdAt  TimestamptzString @default(now())
+
+    user User? @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+    @@index([createdAt])
+    @@index([entityType, entityId])
+  }
+
+  model AccountDeletionRequest {
+    id          String   @id @default(uuid())
+    userId      String
+    requestedAt TimestamptzString @default(now())
+    completedAt TimestamptzString?
+    cancelledAt TimestamptzString?
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@index([userId])
+  }
+}
