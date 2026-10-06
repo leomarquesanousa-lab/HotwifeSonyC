@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { Plus, Pencil, Archive, Check, X, Store } from 'lucide-react';
+import { formatPublishDate, parsePublishDate } from '@/src/lib/store/product-fields';
 import { priceLabel } from '@/components/storefront/data';
 import { useUploadManager } from '@/src/components/app/UploadManagerProvider';
 import type { StoreMedia, StoreProduct } from '@/src/lib/store/types';
@@ -32,7 +33,7 @@ function ProductUpload({ label, accept, fileName, disabled, progress, onFile, on
   </div>;
 }
 function productPayload(product: StoreProduct) {
-  return { mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId, thumbnailMediaAssetId: product.thumbnailMediaAssetId, title: product.title, slug: product.slug, description: product.description, priceCents: product.priceCents, currency: 'USD', category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt };
+  return { title: product.title, slug: product.slug, description: product.description, priceCents: product.priceCents, currency: 'USD', category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt };
 }
 export default function StoreVideos({ initialProducts, media: initialMedia, locale }: { initialProducts: StoreProduct[]; media: StoreMedia[]; locale: string }) {
   const [products,setProducts] = useState(initialProducts);
@@ -64,7 +65,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
   function edit(product: StoreProduct) {
     setError('');setNotice('');
     setSlugEdited(true);
-    setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt ?? '' });
+    setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: formatPublishDate(product.publishedAt) });
   }
   async function save(payload: Record<string, unknown>, id?: string) {
     setBusy(true);setError('');setNotice('');
@@ -106,7 +107,16 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
     if (!match) {logBlockedSubmit();setError('Enter a USD price with up to two decimal places.');return;}
     const priceCents = Number(match[1])*100 + Number((match[2] ?? '').padEnd(2,'0'));
     if (!Number.isSafeInteger(priceCents) || priceCents < 1 || priceCents > 2147483647) {logBlockedSubmit();setError('Enter a valid positive price.');return;}
-    await save({ mediaAssetId: form.mediaAssetId, teaserMediaAssetId: form.teaserMediaAssetId || null, thumbnailMediaAssetId: form.thumbnailMediaAssetId || null, title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status: publish ? 'PUBLISHED' : form.status, publishedAt: form.publishedAt || null },form.id);
+    if (form.publishedAt && !parsePublishDate(form.publishedAt)) { setError('Enter a valid date in MM/DD/YYYY format.'); return; }
+    const existing = products.find(product => product.id === form.id);
+    const mediaChanges: Partial<Record<UploadKey, string>> = {};
+    for (const key of ['mediaAssetId', 'teaserMediaAssetId', 'thumbnailMediaAssetId'] as const) {
+      if (form[key] && (!form.id || form[key] !== existing?.[key])) mediaChanges[key] = form[key];
+    }
+    // Preserve the original instant when the calendar date is untouched.
+    const dateChanges = existing && form.publishedAt === formatPublishDate(existing.publishedAt)
+      ? {} : { publishedAt: form.publishedAt || null };
+    await save({ ...mediaChanges, ...dateChanges, title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status: publish ? 'PUBLISHED' : form.status },form.id);
   }
   return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setSlugEdited(false);setForm({...emptyForm});setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
     {error && <p role="alert" className="mb-5 rounded-lg border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mb-5 text-sm text-emerald-300">{notice}</p>}
@@ -122,12 +132,12 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Slug<input className={fieldClass} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={160} placeholder="your-video-title" value={form.slug} onChange={event => { setSlugEdited(true); update('slug',event.target.value); }}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70 sm:col-span-2">Description<textarea className={fieldClass} required rows={4} maxLength={5000} value={form.description} onChange={event => update('description',event.target.value)}/></label>
       <ProductUpload label="Full Video" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.mediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'mediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('mediaAssetId',file)}/>
-      <ProductUpload label="Teaser (optional)" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.teaserMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'teaserMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('teaserMediaAssetId',file)} onRemove={form.teaserMediaAssetId ? () => update('teaserMediaAssetId','') : undefined} help="The teaser will be publicly playable in full."/>
-      <ProductUpload label="Cover Image (optional)" accept="image/jpeg,image/png,image/webp" fileName={media.find(item => item.id === form.thumbnailMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'thumbnailMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('thumbnailMediaAssetId',file)} onRemove={form.thumbnailMediaAssetId ? () => update('thumbnailMediaAssetId','') : undefined} help="Without a cover, the video thumbnail or default artwork is used."/>
+      <ProductUpload label="Teaser (optional)" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.teaserMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'teaserMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('teaserMediaAssetId',file)} help="The teaser will be publicly playable in full."/>
+      <ProductUpload label="Cover Image (optional)" accept="image/jpeg,image/png,image/webp" fileName={media.find(item => item.id === form.thumbnailMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'thumbnailMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('thumbnailMediaAssetId',file)} help="Without a cover, the video thumbnail or default artwork is used."/>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Price (USD)<input className={fieldClass} inputMode="decimal" placeholder="19.99" required value={form.price} onChange={event => update('price',event.target.value)}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Category<input className={fieldClass} required maxLength={80} value={form.category} onChange={event => update('category',event.target.value)}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Status<select className={fieldClass} value={form.status} onChange={event => update('status',event.target.value)}><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option><option value="ARCHIVED">Archived</option></select></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Publish Date (UTC, optional)<input className={fieldClass} type="datetime-local" value={form.publishedAt ? form.publishedAt.slice(0,16) : ''} onChange={event => update('publishedAt',event.target.value ? new Date(event.target.value+'Z').toISOString() : '')}/><span className="text-white/40">Leave blank to publish now. Future dates keep the product hidden until then.</span></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Publish Date (MM/DD/YYYY, optional)<input className={fieldClass} type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" value={form.publishedAt} onChange={event => update('publishedAt',event.target.value)}/><span className="text-white/40">Dates start at midnight UTC. Leave blank to publish now.</span></label>
       <label className="flex min-h-11 items-center gap-3 self-center text-sm"><input type="checkbox" checked={form.featured} onChange={event => update('featured',event.target.checked)}/> Featured on the storefront</label>
       <div className="flex flex-wrap gap-3 sm:col-span-2"><button className={`${buttonClass} bg-violet-500/25 text-violet-200`} type="submit">{busy ? 'Saving...' : 'Save'}</button><button className={`${buttonClass} text-emerald-300`} type="submit" value="PUBLISHED">Publish</button><button type="button" className={buttonClass} onClick={() => setForm(null)}>Cancel</button></div>
     </fieldset></form>}

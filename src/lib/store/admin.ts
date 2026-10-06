@@ -1,5 +1,5 @@
 ﻿import 'server-only';
-import { z } from 'zod';
+import { productInputSchema, resolveProductFields } from './product-fields';
 import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
@@ -30,31 +30,18 @@ export async function listStoreProducts(workspaceId: string) {
   const products = await db.orm.public.VideoProduct.where({ workspaceId }).orderBy(p => p.createdAt.desc()).all();
   return products.map(serializeProduct);
 }
-const inputSchema = z.object({
-  mediaAssetId: z.string().uuid(),
-  teaserMediaAssetId: z.string().uuid().nullable(),
-  thumbnailMediaAssetId: z.string().uuid().nullable(),
-  title: z.string().trim().min(1).max(160),
-  slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers, and single hyphens for the slug.'),
-  description: z.string().trim().min(1).max(5000),
-  priceCents: z.number().int().min(1).max(2147483647),
-  currency: z.literal('USD'),
-  category: z.string().trim().min(1).max(80),
-  featured: z.boolean(),
-  status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
-  publishedAt: z.iso.datetime({ offset: true }).nullable(),
-}).strict();
-
 export async function saveStoreProduct(workspaceId: string, value: unknown, id?: string) {
-  const result = inputSchema.safeParse(value);
+  const result = productInputSchema.safeParse(value);
   if (!result.success) throw new StoreError(result.error.issues[0]?.message ?? 'Invalid product.');
-  const input = result.data;
+  const submitted = result.data;
   const saved = await db.transaction(async tx => {
     const lock = db.raw.sql`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${'store-video-products'}, 0))`
       .returnsRow({ locked: 'pg/int4@1' }).build();
     await tx.execute(lock);
     const existing = id ? await tx.orm.public.VideoProduct.where({ id, workspaceId }).first() : null;
     if (id && !existing) throw new StoreError('Product not found.', 404);
+    const input = resolveProductFields(submitted, existing);
+    if (!input.mediaAssetId) throw new StoreError('Upload the full video before saving.');
     const duplicate = await tx.orm.public.VideoProduct.where({ slug: input.slug }).first();
     if (duplicate && duplicate.id !== id) throw new StoreError('This slug is already in use.', 409);
     const full = await tx.orm.public.MediaAsset.where({ id: input.mediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first();
@@ -70,7 +57,7 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
       const cover = await tx.orm.public.MediaAsset.where({ id: input.thumbnailMediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'IMAGE' }).first();
       if (!cover || !['image/jpeg', 'image/png', 'image/webp'].includes(cover.contentType)) throw new StoreError('Upload a JPEG, PNG, or WebP cover and wait for it to finish before saving.');
     }
-    const data = { ...input, publishedAt: input.status === 'PUBLISHED' ? input.publishedAt ?? new Date().toISOString() : input.publishedAt };
+    const data = input;
     if (!id) return tx.orm.public.VideoProduct.create({ ...data, workspaceId });
     await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount(data);
     return tx.orm.public.VideoProduct.where({ id, workspaceId }).first();
