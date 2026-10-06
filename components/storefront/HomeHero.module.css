@@ -11,7 +11,7 @@
 }
 
 .hero:global(.store-hero)::after {
-  background: linear-gradient(90deg, transparent 38%, #08090c18 52%, #08090c70 68%, #08090cb8 86%, #08090cd1);
+  background: linear-gradient(90deg, transparent 38%, #09090918 52%, #09090970 68%, #090909b8 86%, #090909d1);
 }
 
 .hero:global(.store-hero) :global(.store-hero-copy) {
@@ -54,7 +54,7 @@
   }
 
   .hero:global(.store-hero)::after {
-    background: linear-gradient(90deg, transparent, #08090c18 25%, #08090c85 55%, #08090ccc);
+    background: linear-gradient(90deg, transparent, #09090918 25%, #09090985 55%, #090909cc);
   }
 
   .hero:global(.store-hero) :global(.store-hero-copy) {

@@ -8,6 +8,10 @@ import type { StoreMedia, StoreProduct } from '@/src/lib/store/types';
 
 type Form = { id?: string; mediaAssetId: string; teaserMediaAssetId: string; thumbnailMediaAssetId: string; title: string; slug: string; description: string; price: string; category: string; featured: boolean; status: string; publishedAt: string };
 const emptyForm: Form = { mediaAssetId: '', teaserMediaAssetId: '', thumbnailMediaAssetId: '', title: '', slug: '', description: '', price: '', category: '', featured: false, status: 'DRAFT', publishedAt: '' };
+function slugFromTitle(title: string) {
+  return title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+}
 const fieldClass = 'w-full min-w-0 rounded-lg border border-white/15 bg-[#111827] px-3 py-3 text-sm text-white placeholder:text-white/30 focus:outline-2 focus:outline-violet-400';
 const buttonClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-2 text-sm disabled:opacity-50';
 type UploadKey = 'mediaAssetId' | 'teaserMediaAssetId' | 'thumbnailMediaAssetId';
@@ -36,6 +40,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
   const { uploadProductFile, uploads, isUploading } = useUploadManager();
   const [uploadingField,setUploadingField] = useState<UploadKey | null>(null);
   const [form,setForm] = useState<Form | null>(null);
+  const [slugEdited,setSlugEdited] = useState(false);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
   const [notice,setNotice] = useState('');
@@ -53,13 +58,27 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
     finally { setUploadingField(null); }
   }
   function update<K extends keyof Form>(key: K, value: Form[K]) { setForm(current => current ? { ...current, [key]: value } : current); }
+  function updateTitle(title: string) {
+    setForm(current => current ? { ...current, title, slug: slugEdited ? current.slug : slugFromTitle(title) } : current);
+  }
   function edit(product: StoreProduct) {
     setError('');setNotice('');
+    setSlugEdited(true);
     setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt ?? '' });
   }
   async function save(payload: Record<string, unknown>, id?: string) {
     setBusy(true);setError('');setNotice('');
     try {
+      console.info('STORE_PRODUCT_FETCH', {
+        titlePresent: typeof payload.title === 'string' && Boolean(payload.title.trim()),
+        slugPresent: typeof payload.slug === 'string' && Boolean(payload.slug.trim()),
+        fullVideoId: payload.mediaAssetId,
+        teaserId: payload.teaserMediaAssetId,
+        coverId: payload.thumbnailMediaAssetId,
+        category: payload.category,
+        status: payload.status,
+        reachedFetch: true,
+      });
       const response = await fetch(id ? `/api/store/products/${id}` : '/api/store/products', { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Unable to save product.');
@@ -69,22 +88,38 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to save product.'); }
     finally { setBusy(false); }
   }
+  function logBlockedSubmit() {
+    console.info('STORE_PRODUCT_SUBMIT_BLOCKED', {
+      titlePresent: Boolean(form?.title.trim()), slugPresent: Boolean(form?.slug.trim()),
+      fullVideoId: form?.mediaAssetId || null, teaserId: form?.teaserMediaAssetId || null,
+      coverId: form?.thumbnailMediaAssetId || null, category: form?.category,
+      status: form?.status, reachedFetch: false,
+    });
+  }
   async function submit(event: FormEvent) {
-    event.preventDefault();if (!form || locked) return;
-    if (!form.mediaAssetId) { setError('Upload the full video before saving.'); return; }
+    event.preventDefault();
+    if (!form || locked) { logBlockedSubmit(); setError(locked ? 'Wait for the current upload or save to finish.' : 'Open the product editor before saving.'); return; }
+    if (!form.mediaAssetId) { logBlockedSubmit(); setError('Upload the full video before saving.'); return; }
     const submitter = (event.nativeEvent as SubmitEvent).submitter;
     const publish = submitter instanceof HTMLButtonElement && submitter.value === 'PUBLISHED';
     const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(form.price);
-    if (!match) {setError('Enter a USD price with up to two decimal places.');return;}
+    if (!match) {logBlockedSubmit();setError('Enter a USD price with up to two decimal places.');return;}
     const priceCents = Number(match[1])*100 + Number((match[2] ?? '').padEnd(2,'0'));
-    if (!Number.isSafeInteger(priceCents) || priceCents < 1 || priceCents > 2147483647) {setError('Enter a valid positive price.');return;}
+    if (!Number.isSafeInteger(priceCents) || priceCents < 1 || priceCents > 2147483647) {logBlockedSubmit();setError('Enter a valid positive price.');return;}
     await save({ mediaAssetId: form.mediaAssetId, teaserMediaAssetId: form.teaserMediaAssetId || null, thumbnailMediaAssetId: form.thumbnailMediaAssetId || null, title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status: publish ? 'PUBLISHED' : form.status, publishedAt: form.publishedAt || null },form.id);
   }
-  return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setForm({...emptyForm});setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
+  return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setSlugEdited(false);setForm({...emptyForm});setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
     {error && <p role="alert" className="mb-5 rounded-lg border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mb-5 text-sm text-emerald-300">{notice}</p>}
-    {form && <form onSubmit={submit} className="mb-8 rounded-xl border border-white/10 bg-[#0f1522] p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-medium">{form.id ? 'Edit Product' : 'Create Product'}</h2><button type="button" aria-label="Close product editor" disabled={locked} className={buttonClass} onClick={() => setForm(null)}><X size={17}/></button></div><fieldset disabled={locked} className="grid min-w-0 gap-5 sm:grid-cols-2">
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Title<input className={fieldClass} required maxLength={160} value={form.title} onChange={event => update('title',event.target.value)}/></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Slug<input className={fieldClass} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={160} placeholder="your-video-title" value={form.slug} onChange={event => update('slug',event.target.value)}/></label>
+    {form && <form onSubmit={submit} onInvalidCapture={event => {
+      const field = event.target;
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) {
+        const label = field.closest('label')?.firstChild?.textContent?.trim() || 'Required field';
+        setError(label + ': ' + field.validationMessage);
+        logBlockedSubmit();
+      }
+    }} className="mb-8 rounded-xl border border-white/10 bg-[#0f1522] p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-medium">{form.id ? 'Edit Product' : 'Create Product'}</h2><button type="button" aria-label="Close product editor" disabled={locked} className={buttonClass} onClick={() => setForm(null)}><X size={17}/></button></div><fieldset disabled={locked} className="grid min-w-0 gap-5 sm:grid-cols-2">
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Title<input className={fieldClass} required maxLength={160} value={form.title} onChange={event => updateTitle(event.target.value)}/></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Slug<input className={fieldClass} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={160} placeholder="your-video-title" value={form.slug} onChange={event => { setSlugEdited(true); update('slug',event.target.value); }}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70 sm:col-span-2">Description<textarea className={fieldClass} required rows={4} maxLength={5000} value={form.description} onChange={event => update('description',event.target.value)}/></label>
       <ProductUpload label="Full Video" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.mediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'mediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('mediaAssetId',file)}/>
       <ProductUpload label="Teaser (optional)" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.teaserMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'teaserMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('teaserMediaAssetId',file)} onRemove={form.teaserMediaAssetId ? () => update('teaserMediaAssetId','') : undefined} help="The teaser will be publicly playable in full."/>

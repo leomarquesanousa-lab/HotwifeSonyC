@@ -173,6 +173,23 @@ async function fetchWithTimeout(
     );
 
   try {
+    if (init.method === "PUT" && typeof input === "string") {
+      let hostname: string | null = null;
+      let protocol: string | null = null;
+      try {
+        const parsedUrl = new URL(input);
+        hostname = parsedUrl.hostname;
+        protocol = parsedUrl.protocol;
+      } catch {
+        // Report malformed URLs without exposing the signed query string.
+      }
+      console.info("MEDIA_MULTIPART_PART_FETCH", {
+        hostname,
+        protocol,
+        urlLength: input.length,
+        signalAborted: controller.signal.aborted,
+      });
+    }
     return await fetch(
       input,
       {

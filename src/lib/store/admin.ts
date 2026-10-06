@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
+import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
 import type { StoreProduct } from './types';
 
 function serializeProduct(product: StoreProduct): StoreProduct {
@@ -78,9 +79,11 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
   return serializeProduct(saved);
 }
 export async function parseStoreBody(request: Request) {
-  const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) throw new StoreError('Invalid request origin.', 403);
-  if (!request.headers.get('content-type')?.includes('application/json')) throw new StoreError('Send a JSON request.');
+  try { assertSameOrigin(request); }
+  catch (error) {
+    if (error instanceof AuthError) throw new StoreError(error.code === 'INVALID_ORIGIN' ? 'Invalid request origin.' : 'Send a JSON request.', error.code === 'INVALID_ORIGIN' ? 403 : 400);
+    throw error;
+  }
   const text = await request.text();
   if (text.length > 16000) throw new StoreError('Request is too large.', 413);
   try { return JSON.parse(text) as unknown; } catch { throw new StoreError('Invalid JSON.'); }

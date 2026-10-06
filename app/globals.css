@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0b0b0c;
+  --foreground: #e7e9ec;
 }
 
 @theme inline {
@@ -14,8 +14,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0b0c;
+    --foreground: #e7e9ec;
   }
 }
 
@@ -24,3 +24,156 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Show the click cursor only on enabled interactive controls. */
+button:not(:disabled):not([aria-disabled="true"]),
+a[href]:not([aria-disabled="true"]),
+select:not(:disabled),
+input:is([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="file"]):not(:disabled),
+summary,
+:is([role="button"], [role="link"], [role="tab"], [role="menuitem"]):not([aria-disabled="true"]):not(:disabled),
+label:has(input[type="file"]:not(:disabled)) {
+  cursor: pointer;
+}
+
+/* Shared graphite surfaces and restrained blue accents. */
+:root {
+  --surface: #161618;
+  --surface-raised: #202023;
+  --store-accent: #9fb2c3;
+  --accent: var(--store-accent);
+}
+
+@theme {
+  --color-blue-50: #f0f3f6;
+  --color-blue-100: #e1e7ed;
+  --color-blue-200: #c3cfda;
+  --color-blue-300: #9fb2c3;
+  --color-blue-400: #7892a9;
+  --color-blue-500: #536f87;
+  --color-blue-600: #435e75;
+  --color-blue-700: #354a5d;
+  --color-blue-800: #283847;
+  --color-blue-900: #1d2934;
+  --color-blue-950: #111820;
+  --color-violet-50: var(--color-blue-50);
+  --color-violet-100: var(--color-blue-100);
+  --color-violet-200: var(--color-blue-200);
+  --color-violet-300: var(--color-blue-300);
+  --color-violet-400: var(--color-blue-400);
+  --color-violet-500: var(--color-blue-500);
+  --color-violet-600: var(--color-blue-600);
+  --color-violet-700: var(--color-blue-700);
+  --color-violet-800: var(--color-blue-800);
+  --color-violet-900: var(--color-blue-900);
+  --color-violet-950: var(--color-blue-950);
+  --color-purple-50: var(--color-blue-50);
+  --color-purple-100: var(--color-blue-100);
+  --color-purple-200: var(--color-blue-200);
+  --color-purple-300: var(--color-blue-300);
+  --color-purple-400: var(--color-blue-400);
+  --color-purple-500: var(--color-blue-500);
+  --color-purple-600: var(--color-blue-600);
+  --color-purple-700: var(--color-blue-700);
+  --color-purple-800: var(--color-blue-800);
+  --color-purple-900: var(--color-blue-900);
+  --color-purple-950: var(--color-blue-950);
+  --color-indigo-50: var(--color-blue-50);
+  --color-indigo-100: var(--color-blue-100);
+  --color-indigo-200: var(--color-blue-200);
+  --color-indigo-300: var(--color-blue-300);
+  --color-indigo-400: var(--color-blue-400);
+  --color-indigo-500: var(--color-blue-500);
+  --color-indigo-600: var(--color-blue-600);
+  --color-indigo-700: var(--color-blue-700);
+  --color-indigo-800: var(--color-blue-800);
+  --color-indigo-900: var(--color-blue-900);
+  --color-indigo-950: var(--color-blue-950);
+  --color-fuchsia-50: var(--color-blue-50);
+  --color-fuchsia-100: var(--color-blue-100);
+  --color-fuchsia-200: var(--color-blue-200);
+  --color-fuchsia-300: var(--color-blue-300);
+  --color-fuchsia-400: var(--color-blue-400);
+  --color-fuchsia-500: var(--color-blue-500);
+  --color-fuchsia-600: var(--color-blue-600);
+  --color-fuchsia-700: var(--color-blue-700);
+  --color-fuchsia-800: var(--color-blue-800);
+  --color-fuchsia-900: var(--color-blue-900);
+  --color-fuchsia-950: var(--color-blue-950);
+  --color-sky-50: var(--color-blue-50);
+  --color-sky-100: var(--color-blue-100);
+  --color-sky-200: var(--color-blue-200);
+  --color-sky-300: var(--color-blue-300);
+  --color-sky-400: var(--color-blue-400);
+  --color-sky-500: var(--color-blue-500);
+  --color-sky-600: var(--color-blue-600);
+  --color-sky-700: var(--color-blue-700);
+  --color-sky-800: var(--color-blue-800);
+  --color-sky-900: var(--color-blue-900);
+  --color-sky-950: var(--color-blue-950);
+  --color-cyan-50: var(--color-blue-50);
+  --color-cyan-100: var(--color-blue-100);
+  --color-cyan-200: var(--color-blue-200);
+  --color-cyan-300: var(--color-blue-300);
+  --color-cyan-400: var(--color-blue-400);
+  --color-cyan-500: var(--color-blue-500);
+  --color-cyan-600: var(--color-blue-600);
+  --color-cyan-700: var(--color-blue-700);
+  --color-cyan-800: var(--color-blue-800);
+  --color-cyan-900: var(--color-blue-900);
+  --color-cyan-950: var(--color-blue-950);
+  --color-slate-50: var(--color-neutral-50);
+  --color-slate-100: var(--color-neutral-100);
+  --color-slate-200: var(--color-neutral-200);
+  --color-slate-300: var(--color-neutral-300);
+  --color-slate-400: var(--color-neutral-400);
+  --color-slate-500: var(--color-neutral-500);
+  --color-slate-600: var(--color-neutral-600);
+  --color-slate-700: var(--color-neutral-700);
+  --color-slate-800: var(--color-neutral-800);
+  --color-slate-900: var(--color-neutral-900);
+  --color-slate-950: var(--color-neutral-950);
+  --color-gray-50: var(--color-neutral-50);
+  --color-gray-100: var(--color-neutral-100);
+  --color-gray-200: var(--color-neutral-200);
+  --color-gray-300: var(--color-neutral-300);
+  --color-gray-400: var(--color-neutral-400);
+  --color-gray-500: var(--color-neutral-500);
+  --color-gray-600: var(--color-neutral-600);
+  --color-gray-700: var(--color-neutral-700);
+  --color-gray-800: var(--color-neutral-800);
+  --color-gray-900: var(--color-neutral-900);
+  --color-gray-950: var(--color-neutral-950);
+  --color-zinc-50: var(--color-neutral-50);
+  --color-zinc-100: var(--color-neutral-100);
+  --color-zinc-200: var(--color-neutral-200);
+  --color-zinc-300: var(--color-neutral-300);
+  --color-zinc-400: var(--color-neutral-400);
+  --color-zinc-500: var(--color-neutral-500);
+  --color-zinc-600: var(--color-neutral-600);
+  --color-zinc-700: var(--color-neutral-700);
+  --color-zinc-800: var(--color-neutral-800);
+  --color-zinc-900: var(--color-neutral-900);
+  --color-zinc-950: var(--color-neutral-950);
+}
+
+/* Existing arbitrary dark backgrounds share the graphite palette. */
+[class~="bg-[#080b12]"] { background-color: #0b0b0b; }
+[class~="bg-[#0c111a]"] { background-color: #111111; }
+[class~="bg-[#0d131e]"] { background-color: #131313; }
+[class~="bg-[#090d14]"] { background-color: #0d0d0d; }
+[class~="bg-[#0a0e16]"] { background-color: #0e0e0e; }
+[class~="bg-[#0a0f18]"] { background-color: #0f0f0f; }
+[class~="bg-[#111722]"] { background-color: #171717; }
+[class~="bg-[#0b1018]"] { background-color: #101010; }
+[class~="bg-[#0c1119]"] { background-color: #111111; }
+[class~="bg-[#0a0f16]"] { background-color: #0e0e0e; }
+[class~="bg-[#0d121b]"] { background-color: #121212; }
+[class~="bg-[#0d1119]"] { background-color: #111111; }
+[class~="bg-[#0b0f17]"] { background-color: #0f0f0f; }
+[class~="bg-[#10141e]"] { background-color: #141414; }
+[class~="bg-[#111827]"] { background-color: #181818; }
+[class~="bg-[#090d15]"] { background-color: #0d0d0d; }
+[class~="bg-[#101623]"] { background-color: #161616; }
+[class~="bg-[#0f1522]"] { background-color: #151515; }
+[class~="bg-[#11141b]"] { background-color: #141414; }
