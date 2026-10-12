@@ -4,17 +4,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import styles from './HomeHero.module.css';
 
-const slides = [
-  { src: '/banner-home.png', alt: 'Sony C by the ocean at sunset', width: 1672, height: 941, position: '25% top', mobile: '25% top' },
-  { src: '/hero1.jpeg', alt: 'Sony C in a softly lit interior', width: 1792, height: 1008, position: '50% 20%', mobile: '56% top' },
-  { src: '/hero2.jpeg', alt: 'Sony C surrounded by colorful lights', width: 1024, height: 768, position: '50% 10%', mobile: '52% top' },
-  { src: '/hero3.jpeg', alt: 'Sony C with a nighttime city skyline', width: 1872, height: 1056, position: '50% 20%', mobile: '55% top' },
-  { src: '/hero4.jpeg', alt: 'Sony C in a warm, sunlit room', width: 1792, height: 1008, position: '50% 15%', mobile: '53% top' },
-  { src: '/hero5.jpeg', alt: 'Sony C by the pool at sunset', width: 1600, height: 1200, position: '50% 10%', mobile: '22% top' },
-  { src: '/hero6.jpeg', alt: 'Sony C by the pool with a daytime city skyline', width: 1599, height: 1200, position: '50% 10%', mobile: '28% top' },
-];
+import { defaultBanners, type HomepageBanner } from '@/src/lib/homepage-banners/types';
 
-export default function HomeHero({ children }: { children: ReactNode }) {
+export default function HomeHero({ children, slides = defaultBanners }: { children: ReactNode; slides?: HomepageBanner[] }) {
   const [active, setActive] = useState(0);
   const [timerKey, setTimerKey] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -27,6 +19,7 @@ export default function HomeHero({ children }: { children: ReactNode }) {
   const touch = useRef<{ x: number; y: number } | null>(null);
 
   const goTo = useCallback(async (index: number) => {
+    if (!slides.length) return;
     const next = (index + slides.length) % slides.length;
     const currentRequest = ++request.current;
     setTimerKey(key => key + 1);
@@ -38,7 +31,7 @@ export default function HomeHero({ children }: { children: ReactNode }) {
         setTimerKey(key => key + 1);
       }
     } catch { /* Keep the current slide if an image is unavailable. */ }
-  }, []);
+  }, [slides.length]);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -56,11 +49,12 @@ export default function HomeHero({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (paused || hovered || focused || reducedMotion || !visible) return;
+    if (!slides.length || paused || hovered || focused || reducedMotion || !visible) return;
     const timer = window.setTimeout(() => void goTo(active + 1), 7000);
     return () => window.clearTimeout(timer);
-  }, [active, timerKey, paused, hovered, focused, reducedMotion, visible, goTo]);
+  }, [active, timerKey, paused, hovered, focused, reducedMotion, visible, goTo, slides.length]);
 
+  if (!slides.length) return null;
   return <section className={`store-hero ${styles.hero}`} style={{ marginLeft: 0, marginRight: 0, width: '100%' }}
     aria-label="Featured collection" aria-roledescription="carousel"
     onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
@@ -87,7 +81,7 @@ export default function HomeHero({ children }: { children: ReactNode }) {
         src={slide.src} alt={slide.alt} width={slide.width} height={slide.height}
         aria-hidden={active !== index} loading={index === 0 ? 'eager' : 'lazy'}
         fetchPriority={index === 0 ? 'high' : 'low'} decoding="async"
-        style={{ '--hero-position': slide.position, '--hero-mobile-position': slide.mobile } as React.CSSProperties}/>)}
+        style={{ '--hero-position': `${slide.focal.x}% ${slide.focal.y}%`, '--hero-mobile-position': `${slide.mobileFocal.x}% ${slide.mobileFocal.y}%` } as React.CSSProperties}/>)}
       <span className="store-art-label">SONY C / VISUAL STORIES</span>
     </div>
     {children}

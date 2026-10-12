@@ -6,12 +6,17 @@
 }
 
 .hero:global(.store-hero) :global(.store-hero-art) img {
+  /* Cover supplies the minimum scale needed to fill the frame, without extra zoom. */
   object-fit: cover !important;
-  object-position: 25% top !important;
+}
+
+.hero:global(.store-hero) :global(.store-hero-art) {
+  overflow: hidden;
+  background: #11131a;
 }
 
 .hero:global(.store-hero)::after {
-  background: linear-gradient(90deg, transparent 38%, #09090918 52%, #09090970 68%, #090909b8 86%, #090909d1);
+  background: linear-gradient(90deg, #09090900 25%, #09090912 42%, #09090955 57%, #090909a8 73%, #090909d9 100%), linear-gradient(0deg, #09090960, transparent 28%);
 }
 
 .hero:global(.store-hero) :global(.store-hero-copy) {
@@ -54,7 +59,7 @@
   }
 
   .hero:global(.store-hero)::after {
-    background: linear-gradient(90deg, transparent, #09090918 25%, #09090985 55%, #090909cc);
+    background: linear-gradient(90deg, #09090908 0%, #09090924 28%, #09090980 55%, #090909bf 78%, #090909d9 100%), linear-gradient(0deg, #09090980, transparent 32%);
   }
 
   .hero:global(.store-hero) :global(.store-hero-copy) {

@@ -23,13 +23,45 @@ export async function requireStoreManagementAccess() {
   return { workspaceId: member.workspaceId, actorId: auth.user.id, canDelete: ['OWNER', 'ADMIN'].includes(member.role) };
 }
 export async function requireStoreAccess() { return (await requireStoreManagementAccess()).workspaceId; }
+const purchasedDeletionMessage = 'This video has existing purchases and cannot be permanently deleted. You can remove it from sale instead. Existing customers must retain access.';
+async function permanentDeletionBlock(orm: typeof db.orm, id: string) {
+  if (await orm.public.Purchase.where({ videoProductId: id, status: 'PAID' }).first()) return purchasedDeletionMessage;
+  if (await orm.public.Purchase.where({ videoProductId: id }).first()) return 'Purchase history is associated with this video. Remove it from sale instead; purchase records must be preserved.';
+  const references = await Promise.all([
+    orm.public.ContentReview.where({ videoProductId: id }).first(),
+    orm.public.ContentConsent.where({ videoProductId: id }).first(),
+    orm.public.ComplianceReport.where({ videoProductId: id }).first(),
+  ]);
+  return references.some(Boolean) ? 'Compliance records are associated with this video. Remove it from sale instead; these records must be preserved.' : null;
+}
 export async function getStoreRemovalPreview(id: string) {
   const access = await requireStoreManagementAccess();
   if (!access.canDelete) throw new StoreError('You do not have permission to delete video products.', 403);
   const product = await db.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).select('id').first();
   if (!product) throw new StoreError('Product not found.', 404);
   const paid = await db.orm.public.Purchase.where({ videoProductId: id, status: 'PAID' }).select('userId').all();
-  return { paidPurchaseCount: new Set(paid.map(purchase => purchase.userId)).size };
+  const permanentDeletionReason = await permanentDeletionBlock(db.orm, id);
+  return { paidPurchaseCount: new Set(paid.map(purchase => purchase.userId)).size, permanentDeletionAllowed: !permanentDeletionReason, permanentDeletionReason };
+}
+export async function permanentlyDeleteStoreProduct(id: string) {
+  const access = await requireStoreManagementAccess();
+  if (!access.canDelete) throw new StoreError('You do not have permission to permanently delete video products.', 403);
+  try {
+    return await db.transaction(async tx => {
+      await tx.execute(db.raw.sql`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${'store-video-products'}, 0))`.returnsRow({ locked: 'pg/int4@1' }).build());
+      const product = await tx.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).first();
+      if (!product) throw new StoreError('Product not found.', 404);
+      const reason = await permanentDeletionBlock(tx.orm, id);
+      if (reason) throw new StoreError(reason, 409);
+      // Foreign keys are the final guard against concurrent new references. Never cascade or remove them.
+      await tx.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).delete();
+      await tx.orm.public.AuditLog.create({ userId: access.actorId, action: 'CONTENT_DELETED', entityType: 'VIDEO_PRODUCT', entityId: id, metadata: { workspaceId: access.workspaceId, previousStatus: product.status, source: 'STORE_PERMANENT_DELETE', mediaPreserved: true } });
+      return { deletedId: id };
+    });
+  } catch (error) {
+    if (error instanceof StoreError) throw error;
+    throw new StoreError('Unable to permanently delete this product. Related records may prevent deletion; remove it from sale instead.', 409);
+  }
 }
 export async function archiveStoreProduct(id: string) {
   const access = await requireStoreManagementAccess();

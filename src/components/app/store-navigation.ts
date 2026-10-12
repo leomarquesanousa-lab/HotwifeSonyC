@@ -6,7 +6,7 @@ export function getStoreNavigation(locale: string, t: (key: string) => string, r
     { label: 'Videos for Sale', path: `/app/store/videos`, icon: Store },
     { label: t('analytics'), path: `/app/analytics`, icon: BarChart3 },
     { label: t('settings'), path: `/app/settings`, icon: Settings },
-    ...(['OWNER', 'ADMIN'].includes(role ?? '') ? [{ label: 'Compliance / Reports', path: '/app/compliance', icon: ShieldCheck }] : []),
+    ...(['OWNER', 'ADMIN'].includes(role ?? '') ? [{ label: 'Homepage Banners', path: '/app/homepage-banners', icon: Store }, { label: 'Compliance / Reports', path: '/app/compliance', icon: ShieldCheck }] : []),
     ...(role === 'OWNER' ? [{ label: 'Administrative Users', path: '/app/users', icon: Users }] : []),
   ];
 }

@@ -17,8 +17,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://hotwifesonyc.com"),
   title: "HotwifeSonyC",
   description: "Premium videos from the HotwifeSonyC collection.",
+  openGraph: {
+    title: "HotwifeSonyC · The Private Collection",
+    description: "Original visual stories. A unique perspective. Explore the HotwifeSonyC collection.",
+    siteName: "HotwifeSonyC",
+    url: "https://hotwifesonyc.com",
+    type: "website",
+    images: [{ url: "/hotwifesonyc-social.jpg", width: 1200, height: 630, alt: "HotwifeSonyC — The Private Collection" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HotwifeSonyC · The Private Collection",
+    description: "Original visual stories. A unique perspective. Explore the HotwifeSonyC collection.",
+    images: [{ url: "/hotwifesonyc-social.jpg", alt: "HotwifeSonyC — The Private Collection" }],
+  },
 };
 
 export const viewport: Viewport = {

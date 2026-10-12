@@ -1,8 +1,10 @@
-﻿import type { Metadata } from 'next';
+import { bannerStore } from '@/src/lib/homepage-banners/server';
+import { publicBanners } from '@/src/lib/homepage-banners/types';
+import type { Metadata } from 'next';
 import { getPublishedVideos } from '@/src/lib/store/public';
 export const dynamic = 'force-dynamic';
 import Home from '@/components/storefront/Home';
 import { StoreShell } from '@/components/storefront/Storefront';
 import './(storefront)/storefront.css';
 export const metadata: Metadata = { title: 'Sony C · The Private Collection', description: 'Discover an original collection of visual stories. Watch previews and buy the videos you love, one at a time.' };
-export default async function RootPage() { const videos = await getPublishedVideos(); return <StoreShell><Home videos={videos}/></StoreShell>; }
+export default async function RootPage() { const [videos, banners] = await Promise.all([getPublishedVideos(), bannerStore.list()]); return <StoreShell><Home videos={videos} banners={publicBanners(banners)}/></StoreShell>; }
