@@ -4,6 +4,7 @@ import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
 import type { StoreProduct } from './types';
+import { assertCommercialPublication, contentFingerprint, ComplianceError } from '@/src/lib/compliance/service';
 
 function serializeProduct(product: StoreProduct): StoreProduct {
   return { ...product, createdAt: new Date(product.createdAt).toISOString(), updatedAt: new Date(product.updatedAt).toISOString(), publishedAt: product.publishedAt ? new Date(product.publishedAt).toISOString() : null };
@@ -12,14 +13,40 @@ function serializeProduct(product: StoreProduct): StoreProduct {
 export class StoreError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
-export async function requireStoreAccess() {
+export async function requireStoreManagementAccess() {
   const auth = await getCurrentSession();
   if (!auth) throw new StoreError('Sign in to manage your store.', 401);
   const member = await db.orm.public.WorkspaceMember.where({ userId: auth.user.id }).first();
   if (!member || !['OWNER', 'ADMIN', 'OPERATOR'].includes(member.role)) throw new StoreError('You do not have permission to manage this store.', 403);
   const workspace = await db.orm.public.Workspace.where({ id: member.workspaceId, status: 'ACTIVE' }).first();
   if (!workspace) throw new StoreError('This workspace is unavailable.', 403);
-  return member.workspaceId;
+  return { workspaceId: member.workspaceId, actorId: auth.user.id, canDelete: ['OWNER', 'ADMIN'].includes(member.role) };
+}
+export async function requireStoreAccess() { return (await requireStoreManagementAccess()).workspaceId; }
+export async function getStoreRemovalPreview(id: string) {
+  const access = await requireStoreManagementAccess();
+  if (!access.canDelete) throw new StoreError('You do not have permission to delete video products.', 403);
+  const product = await db.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).select('id').first();
+  if (!product) throw new StoreError('Product not found.', 404);
+  const paid = await db.orm.public.Purchase.where({ videoProductId: id, status: 'PAID' }).select('userId').all();
+  return { paidPurchaseCount: new Set(paid.map(purchase => purchase.userId)).size };
+}
+export async function archiveStoreProduct(id: string) {
+  const access = await requireStoreManagementAccess();
+  if (!access.canDelete) throw new StoreError('You do not have permission to delete video products.', 403);
+  return db.transaction(async tx => {
+    await tx.execute(db.raw.sql`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${'store-video-products'}, 0))`.returnsRow({ locked: 'pg/int4@1' }).build());
+    const product = await tx.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).first();
+    if (!product) throw new StoreError('Product not found.', 404);
+    // Retries under the shared product lock do not duplicate audit events.
+    if (product.status === 'ARCHIVED') return serializeProduct(product);
+    const hasPurchases = !!await tx.orm.public.Purchase.where({ videoProductId: id }).select('id').first();
+    await tx.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).updateAndCount({ status: 'ARCHIVED' });
+    await tx.orm.public.AuditLog.create({ userId: access.actorId, action: 'CONTENT_ARCHIVED', entityType: 'VIDEO_PRODUCT', entityId: id, metadata: { workspaceId: access.workspaceId, previousStatus: product.status, status: 'ARCHIVED', source: 'STORE_DELETE', hasPurchases, purchasesPreserved: true, mediaPreserved: true } });
+    const archived = await tx.orm.public.VideoProduct.where({ id, workspaceId: access.workspaceId }).first();
+    if (!archived) throw new StoreError('Unable to archive video.', 500);
+    return serializeProduct(archived);
+  });
 }
 export async function listStoreMedia(workspaceId: string) {
   return db.orm.public.MediaAsset.where({ workspaceId, status: 'UPLOADED' })
@@ -58,8 +85,15 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
       if (!cover || !['image/jpeg', 'image/png', 'image/webp'].includes(cover.contentType)) throw new StoreError('Upload a JPEG, PNG, or WebP cover and wait for it to finish before saving.');
     }
     const data = input;
-    if (!id) return tx.orm.public.VideoProduct.create({ ...data, workspaceId });
-    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount(data);
+    if (input.status === 'PUBLISHED') {
+      try { await assertCommercialPublication(tx, workspaceId, input, existing); }
+      catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
+    }
+    if (!id) return tx.orm.public.VideoProduct.create({ ...data, workspaceId, complianceStatus: 'DRAFT' });
+    const changed = existing && contentFingerprint(existing) !== contentFingerprint(input);
+    const blocked = existing && ['SUSPENDED', 'REMOVED'].includes(existing.complianceStatus);
+    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(changed && !blocked ? { complianceStatus: 'DRAFT' } : {}) });
+    if (changed) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount({ fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });
     return tx.orm.public.VideoProduct.where({ id, workspaceId }).first();
   });
   if (!saved) throw new StoreError('Unable to save product.', 500);

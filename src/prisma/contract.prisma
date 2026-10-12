@@ -1,6 +1,108 @@
 // use prisma-next
 
 namespace public {
+  model ComplianceReport {
+    id             String @id @default(uuid())
+    workspaceId    String
+    videoProductId String?
+    kind           String @default("CONTENT")
+    contentUrl     String
+    reason         String
+    reporterName   String
+    reporterEmail  String
+    depictedPerson Boolean @default(false)
+    description    String
+    supportingInfo String?
+    status         String @default("OPEN")
+    priority       String @default("NORMAL")
+    decision       String?
+    dueAt          TimestamptzString
+    resolvedAt     TimestamptzString?
+    createdAt      TimestamptzString @default(now())
+    updatedAt      temporal.updatedAtString()
+    workspace      Workspace @relation(fields: [workspaceId], references: [id])
+    videoProduct   VideoProduct? @relation(fields: [videoProductId], references: [id])
+    @@index([workspaceId, status])
+    @@index([priority, dueAt])
+    @@check(expression: "status IN ('OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED', 'RESOLVED', 'REJECTED')", name: "compliance_report_status")
+  }
+
+  model ComplianceIdentity {
+    id            String @id @default(uuid())
+    workspaceId   String
+    subjectType   String
+    subjectId     String
+    status        String @default("NOT_VERIFIED")
+    dateOfBirth   String?
+    evidenceRef   String?
+    expiresAt     TimestamptzString?
+    verifiedBy    String?
+    verifiedAt    TimestamptzString?
+    createdAt     TimestamptzString @default(now())
+    updatedAt     temporal.updatedAtString()
+    workspace     Workspace @relation(fields: [workspaceId], references: [id])
+    @@index([workspaceId, subjectType, subjectId, createdAt], name: "compliance_identity_subject_history")
+    @@check(expression: "status IN ('NOT_VERIFIED', 'VERIFIED', 'REJECTED')", name: "compliance_identity_status")
+    @@check(expression: "\"subjectType\" IN ('USER', 'PERFORMER')", name: "compliance_identity_subject")
+  }
+
+  model ContentReview {
+    id                 String @id @default(uuid())
+    workspaceId        String
+    videoProductId     String @unique
+    providerUserId     String?
+    recordedOn         String?
+    allPersonsConfirmed Boolean @default(false)
+    prohibitedChecked  Boolean @default(false)
+    copyrightConfirmed Boolean @default(false)
+    status             String @default("DRAFT")
+    fingerprint        String?
+    decision           String?
+    reviewedBy         String?
+    reviewedAt         TimestamptzString?
+    createdAt          TimestamptzString @default(now())
+    updatedAt          temporal.updatedAtString()
+    workspace          Workspace @relation(fields: [workspaceId], references: [id])
+    videoProduct       VideoProduct @relation(fields: [videoProductId], references: [id])
+    @@index([workspaceId, status])
+    @@check(expression: "status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED', 'REMOVED')", name: "content_review_status")
+  }
+
+  model ContentConsent {
+    id              String @id @default(uuid())
+    workspaceId     String
+    videoProductId  String
+    performerId     String
+    evidenceRef     String
+    mediaFingerprint String
+    depiction       Boolean @default(false)
+    distribution    Boolean @default(false)
+    publication     Boolean @default(false)
+    downloads       Boolean @default(false)
+    status          String @default("RECORDED")
+    recordedBy      String
+    recordedAt      TimestamptzString @default(now())
+    updatedAt       temporal.updatedAtString()
+    workspace       Workspace @relation(fields: [workspaceId], references: [id])
+    videoProduct    VideoProduct @relation(fields: [videoProductId], references: [id])
+    performer       Performer @relation(fields: [performerId], references: [id])
+    @@index([videoProductId, performerId, recordedAt], name: "content_consent_person_history")
+    @@index([workspaceId])
+    @@check(expression: "status IN ('RECORDED', 'DISPUTED', 'REVOKED')", name: "content_consent_status")
+  }
+
+  model ComplianceNote {
+    id          String @id @default(uuid())
+    workspaceId String
+    objectType  String
+    objectId    String
+    body        String
+    actorId     String
+    createdAt   TimestamptzString @default(now())
+    workspace   Workspace @relation(fields: [workspaceId], references: [id])
+    @@index([workspaceId, objectType, objectId])
+  }
+
   model Purchase {
     id              String @id @default(uuid())
     userId          String
@@ -35,6 +137,7 @@ namespace public {
     category              String
     featured              Boolean @default(false)
     status                String @default("DRAFT")
+    complianceStatus      String @default("LEGACY_UNREVIEWED")
     publishedAt           TimestamptzString?
     createdAt             TimestamptzString @default(now())
     updatedAt             temporal.updatedAtString()

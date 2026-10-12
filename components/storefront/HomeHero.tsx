@@ -10,6 +10,8 @@ const slides = [
   { src: '/hero2.jpeg', alt: 'Sony C surrounded by colorful lights', width: 1024, height: 768, position: '50% 10%', mobile: '52% top' },
   { src: '/hero3.jpeg', alt: 'Sony C with a nighttime city skyline', width: 1872, height: 1056, position: '50% 20%', mobile: '55% top' },
   { src: '/hero4.jpeg', alt: 'Sony C in a warm, sunlit room', width: 1792, height: 1008, position: '50% 15%', mobile: '53% top' },
+  { src: '/hero5.jpeg', alt: 'Sony C by the pool at sunset', width: 1600, height: 1200, position: '50% 10%', mobile: '22% top' },
+  { src: '/hero6.jpeg', alt: 'Sony C by the pool with a daytime city skyline', width: 1599, height: 1200, position: '50% 10%', mobile: '28% top' },
 ];
 
 export default function HomeHero({ children }: { children: ReactNode }) {

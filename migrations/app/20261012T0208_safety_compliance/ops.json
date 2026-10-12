@@ -1,0 +1,1205 @@
+[
+  {
+    "id": "table.complianceIdentity",
+    "label": "Create table \"complianceIdentity\"",
+    "summary": "Creates table \"complianceIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "complianceIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"complianceIdentity\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"complianceIdentity\"",
+        "sql": "CREATE TABLE \"public\".\"complianceIdentity\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dateOfBirth\" text,\n  \"evidenceRef\" text,\n  \"expiresAt\" timestamptz,\n  \"id\" text NOT NULL,\n  \"status\" text DEFAULT 'NOT_VERIFIED' NOT NULL,\n  \"subjectId\" text NOT NULL,\n  \"subjectType\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"verifiedAt\" timestamptz,\n  \"verifiedBy\" text,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"compliance_identity_status_f0acc6da\" CHECK (status IN ('NOT_VERIFIED', 'VERIFIED', 'REJECTED')),\n  CONSTRAINT \"compliance_identity_subject_8016ac06\" CHECK (\"subjectType\" IN ('USER', 'PERFORMER'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"complianceIdentity\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.complianceNote",
+    "label": "Create table \"complianceNote\"",
+    "summary": "Creates table \"complianceNote\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "complianceNote"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"complianceNote\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"complianceNote\"",
+        "sql": "CREATE TABLE \"public\".\"complianceNote\" (\n  \"actorId\" text NOT NULL,\n  \"body\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" text NOT NULL,\n  \"objectId\" text NOT NULL,\n  \"objectType\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"complianceNote\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.complianceReport",
+    "label": "Create table \"complianceReport\"",
+    "summary": "Creates table \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"complianceReport\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"complianceReport\"",
+        "sql": "CREATE TABLE \"public\".\"complianceReport\" (\n  \"contentUrl\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"decision\" text,\n  \"depictedPerson\" bool DEFAULT false NOT NULL,\n  \"description\" text NOT NULL,\n  \"dueAt\" timestamptz NOT NULL,\n  \"id\" text NOT NULL,\n  \"kind\" text DEFAULT 'CONTENT' NOT NULL,\n  \"priority\" text DEFAULT 'NORMAL' NOT NULL,\n  \"reason\" text NOT NULL,\n  \"reporterEmail\" text NOT NULL,\n  \"reporterName\" text NOT NULL,\n  \"resolvedAt\" timestamptz,\n  \"status\" text DEFAULT 'OPEN' NOT NULL,\n  \"supportingInfo\" text,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"videoProductId\" text,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"compliance_report_status_f4b1f260\" CHECK (status IN ('OPEN', 'UNDER_REVIEW', 'ACTION_REQUIRED', 'RESOLVED', 'REJECTED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"complianceReport\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.contentConsent",
+    "label": "Create table \"contentConsent\"",
+    "summary": "Creates table \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contentConsent\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contentConsent\"",
+        "sql": "CREATE TABLE \"public\".\"contentConsent\" (\n  \"depiction\" bool DEFAULT false NOT NULL,\n  \"distribution\" bool DEFAULT false NOT NULL,\n  \"downloads\" bool DEFAULT false NOT NULL,\n  \"evidenceRef\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"mediaFingerprint\" text NOT NULL,\n  \"performerId\" text NOT NULL,\n  \"publication\" bool DEFAULT false NOT NULL,\n  \"recordedAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"recordedBy\" text NOT NULL,\n  \"status\" text DEFAULT 'RECORDED' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"videoProductId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"content_consent_status_3b87e629\" CHECK (status IN ('RECORDED', 'DISPUTED', 'REVOKED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contentConsent\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.contentReview",
+    "label": "Create table \"contentReview\"",
+    "summary": "Creates table \"contentReview\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contentReview\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contentReview\"",
+        "sql": "CREATE TABLE \"public\".\"contentReview\" (\n  \"allPersonsConfirmed\" bool DEFAULT false NOT NULL,\n  \"copyrightConfirmed\" bool DEFAULT false NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"decision\" text,\n  \"fingerprint\" text,\n  \"id\" text NOT NULL,\n  \"prohibitedChecked\" bool DEFAULT false NOT NULL,\n  \"providerUserId\" text,\n  \"recordedOn\" text,\n  \"reviewedAt\" timestamptz,\n  \"reviewedBy\" text,\n  \"status\" text DEFAULT 'DRAFT' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"videoProductId\" text NOT NULL,\n  \"workspaceId\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"content_review_status_3269faac\" CHECK (status IN ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'SUSPENDED', 'REMOVED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contentReview\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "column.public.videoProduct.complianceStatus",
+    "label": "Add column \"complianceStatus\" to \"videoProduct\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "column",
+        "name": "complianceStatus",
+        "table": "videoProduct"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure column \"complianceStatus\" is missing",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "videoProduct",
+          "complianceStatus"
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add column \"complianceStatus\"",
+        "sql": "ALTER TABLE \"public\".\"videoProduct\" ADD COLUMN \"complianceStatus\" text DEFAULT 'LEGACY_UNREVIEWED' NOT NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify column \"complianceStatus\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\"",
+        "params": [
+          "public",
+          "videoProduct",
+          "complianceStatus"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.contentReview.contentReview_videoProductId_key",
+    "label": "Add unique constraint on \"contentReview\" (videoProductId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "contentReview_videoProductId_key",
+        "table": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"contentReview_videoProductId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_videoProductId_key",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"contentReview_videoProductId_key\"",
+        "sql": "ALTER TABLE \"public\".\"contentReview\" ADD CONSTRAINT \"contentReview_videoProductId_key\" UNIQUE (\"videoProductId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"contentReview_videoProductId_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_videoProductId_key",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceIdentity.complianceIdentity_workspaceId_idx_ba65f874",
+    "label": "Create index \"complianceIdentity_workspaceId_idx_ba65f874\" on \"complianceIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceIdentity_workspaceId_idx_ba65f874",
+        "table": "complianceIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceIdentity_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceIdentity_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceIdentity_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"complianceIdentity_workspaceId_idx_ba65f874\" ON \"public\".\"complianceIdentity\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceIdentity_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceIdentity_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceIdentity.compliance_identity_subject_history_a9621434",
+    "label": "Create index \"compliance_identity_subject_history_a9621434\" on \"complianceIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "compliance_identity_subject_history_a9621434",
+        "table": "complianceIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"compliance_identity_subject_history_a9621434\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"compliance_identity_subject_history_a9621434\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"compliance_identity_subject_history_a9621434\"",
+        "sql": "CREATE INDEX \"compliance_identity_subject_history_a9621434\" ON \"public\".\"complianceIdentity\" (\"workspaceId\", \"subjectType\", \"subjectId\", \"createdAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"compliance_identity_subject_history_a9621434\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"compliance_identity_subject_history_a9621434\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceNote.complianceNote_workspaceId_idx_ba65f874",
+    "label": "Create index \"complianceNote_workspaceId_idx_ba65f874\" on \"complianceNote\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceNote_workspaceId_idx_ba65f874",
+        "table": "complianceNote"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceNote_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceNote_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"complianceNote_workspaceId_idx_ba65f874\" ON \"public\".\"complianceNote\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceNote_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceNote.complianceNote_workspaceId_objectType_objectId_idx_10fc17db",
+    "label": "Create index \"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\" on \"complianceNote\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceNote_workspaceId_objectType_objectId_idx_10fc17db",
+        "table": "complianceNote"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\"",
+        "sql": "CREATE INDEX \"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\" ON \"public\".\"complianceNote\" (\"workspaceId\", \"objectType\", \"objectId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceNote_workspaceId_objectType_objectId_idx_10fc17db\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceReport.complianceReport_priority_dueAt_idx_2d1f73c8",
+    "label": "Create index \"complianceReport_priority_dueAt_idx_2d1f73c8\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceReport_priority_dueAt_idx_2d1f73c8",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceReport_priority_dueAt_idx_2d1f73c8\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_priority_dueAt_idx_2d1f73c8\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceReport_priority_dueAt_idx_2d1f73c8\"",
+        "sql": "CREATE INDEX \"complianceReport_priority_dueAt_idx_2d1f73c8\" ON \"public\".\"complianceReport\" (\"priority\", \"dueAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceReport_priority_dueAt_idx_2d1f73c8\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_priority_dueAt_idx_2d1f73c8\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceReport.complianceReport_videoProductId_idx_77e8a66c",
+    "label": "Create index \"complianceReport_videoProductId_idx_77e8a66c\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceReport_videoProductId_idx_77e8a66c",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceReport_videoProductId_idx_77e8a66c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceReport_videoProductId_idx_77e8a66c\"",
+        "sql": "CREATE INDEX \"complianceReport_videoProductId_idx_77e8a66c\" ON \"public\".\"complianceReport\" (\"videoProductId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceReport_videoProductId_idx_77e8a66c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceReport.complianceReport_workspaceId_idx_ba65f874",
+    "label": "Create index \"complianceReport_workspaceId_idx_ba65f874\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceReport_workspaceId_idx_ba65f874",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceReport_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceReport_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"complianceReport_workspaceId_idx_ba65f874\" ON \"public\".\"complianceReport\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceReport_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.complianceReport.complianceReport_workspaceId_status_idx_76d68132",
+    "label": "Create index \"complianceReport_workspaceId_status_idx_76d68132\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "complianceReport_workspaceId_status_idx_76d68132",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"complianceReport_workspaceId_status_idx_76d68132\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_workspaceId_status_idx_76d68132\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"complianceReport_workspaceId_status_idx_76d68132\"",
+        "sql": "CREATE INDEX \"complianceReport_workspaceId_status_idx_76d68132\" ON \"public\".\"complianceReport\" (\"workspaceId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"complianceReport_workspaceId_status_idx_76d68132\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"complianceReport_workspaceId_status_idx_76d68132\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentConsent.contentConsent_performerId_idx_568c0ad9",
+    "label": "Create index \"contentConsent_performerId_idx_568c0ad9\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contentConsent_performerId_idx_568c0ad9",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contentConsent_performerId_idx_568c0ad9\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_performerId_idx_568c0ad9\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contentConsent_performerId_idx_568c0ad9\"",
+        "sql": "CREATE INDEX \"contentConsent_performerId_idx_568c0ad9\" ON \"public\".\"contentConsent\" (\"performerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contentConsent_performerId_idx_568c0ad9\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_performerId_idx_568c0ad9\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentConsent.contentConsent_videoProductId_idx_77e8a66c",
+    "label": "Create index \"contentConsent_videoProductId_idx_77e8a66c\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contentConsent_videoProductId_idx_77e8a66c",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contentConsent_videoProductId_idx_77e8a66c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contentConsent_videoProductId_idx_77e8a66c\"",
+        "sql": "CREATE INDEX \"contentConsent_videoProductId_idx_77e8a66c\" ON \"public\".\"contentConsent\" (\"videoProductId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contentConsent_videoProductId_idx_77e8a66c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_videoProductId_idx_77e8a66c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentConsent.contentConsent_workspaceId_idx_ba65f874",
+    "label": "Create index \"contentConsent_workspaceId_idx_ba65f874\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contentConsent_workspaceId_idx_ba65f874",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contentConsent_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contentConsent_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"contentConsent_workspaceId_idx_ba65f874\" ON \"public\".\"contentConsent\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contentConsent_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentConsent_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentConsent.content_consent_person_history_00fad401",
+    "label": "Create index \"content_consent_person_history_00fad401\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "content_consent_person_history_00fad401",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"content_consent_person_history_00fad401\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"content_consent_person_history_00fad401\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"content_consent_person_history_00fad401\"",
+        "sql": "CREATE INDEX \"content_consent_person_history_00fad401\" ON \"public\".\"contentConsent\" (\"videoProductId\", \"performerId\", \"recordedAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"content_consent_person_history_00fad401\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"content_consent_person_history_00fad401\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentReview.contentReview_workspaceId_idx_ba65f874",
+    "label": "Create index \"contentReview_workspaceId_idx_ba65f874\" on \"contentReview\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contentReview_workspaceId_idx_ba65f874",
+        "table": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contentReview_workspaceId_idx_ba65f874\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contentReview_workspaceId_idx_ba65f874\"",
+        "sql": "CREATE INDEX \"contentReview_workspaceId_idx_ba65f874\" ON \"public\".\"contentReview\" (\"workspaceId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contentReview_workspaceId_idx_ba65f874\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview_workspaceId_idx_ba65f874\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contentReview.contentReview_workspaceId_status_idx_76d68132",
+    "label": "Create index \"contentReview_workspaceId_status_idx_76d68132\" on \"contentReview\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contentReview_workspaceId_status_idx_76d68132",
+        "table": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contentReview_workspaceId_status_idx_76d68132\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview_workspaceId_status_idx_76d68132\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contentReview_workspaceId_status_idx_76d68132\"",
+        "sql": "CREATE INDEX \"contentReview_workspaceId_status_idx_76d68132\" ON \"public\".\"contentReview\" (\"workspaceId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contentReview_workspaceId_status_idx_76d68132\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contentReview_workspaceId_status_idx_76d68132\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.complianceIdentity.complianceIdentity_workspaceId_fkey",
+    "label": "Add foreign key \"complianceIdentity_workspaceId_fkey\" on \"complianceIdentity\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "complianceIdentity_workspaceId_fkey",
+        "table": "complianceIdentity"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"complianceIdentity_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceIdentity_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceIdentity\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"complianceIdentity_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"complianceIdentity\"\nADD CONSTRAINT \"complianceIdentity_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"complianceIdentity_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceIdentity_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceIdentity\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.complianceNote.complianceNote_workspaceId_fkey",
+    "label": "Add foreign key \"complianceNote_workspaceId_fkey\" on \"complianceNote\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "complianceNote_workspaceId_fkey",
+        "table": "complianceNote"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"complianceNote_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceNote_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceNote\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"complianceNote_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"complianceNote\"\nADD CONSTRAINT \"complianceNote_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"complianceNote_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceNote_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceNote\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.complianceReport.complianceReport_workspaceId_fkey",
+    "label": "Add foreign key \"complianceReport_workspaceId_fkey\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "complianceReport_workspaceId_fkey",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"complianceReport_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceReport_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"complianceReport_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"complianceReport\"\nADD CONSTRAINT \"complianceReport_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"complianceReport_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceReport_workspaceId_fkey",
+          "public",
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.complianceReport.complianceReport_videoProductId_fkey",
+    "label": "Add foreign key \"complianceReport_videoProductId_fkey\" on \"complianceReport\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "complianceReport_videoProductId_fkey",
+        "table": "complianceReport"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"complianceReport_videoProductId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceReport_videoProductId_fkey",
+          "public",
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"complianceReport_videoProductId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"complianceReport\"\nADD CONSTRAINT \"complianceReport_videoProductId_fkey\"\nFOREIGN KEY (\"videoProductId\")\nREFERENCES \"public\".\"videoProduct\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"complianceReport_videoProductId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "complianceReport_videoProductId_fkey",
+          "public",
+          "\"public\".\"complianceReport\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contentConsent.contentConsent_workspaceId_fkey",
+    "label": "Add foreign key \"contentConsent_workspaceId_fkey\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contentConsent_workspaceId_fkey",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contentConsent_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_workspaceId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contentConsent_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contentConsent\"\nADD CONSTRAINT \"contentConsent_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contentConsent_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_workspaceId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contentConsent.contentConsent_videoProductId_fkey",
+    "label": "Add foreign key \"contentConsent_videoProductId_fkey\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contentConsent_videoProductId_fkey",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contentConsent_videoProductId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_videoProductId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contentConsent_videoProductId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contentConsent\"\nADD CONSTRAINT \"contentConsent_videoProductId_fkey\"\nFOREIGN KEY (\"videoProductId\")\nREFERENCES \"public\".\"videoProduct\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contentConsent_videoProductId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_videoProductId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contentConsent.contentConsent_performerId_fkey",
+    "label": "Add foreign key \"contentConsent_performerId_fkey\" on \"contentConsent\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contentConsent_performerId_fkey",
+        "table": "contentConsent"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contentConsent_performerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_performerId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contentConsent_performerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contentConsent\"\nADD CONSTRAINT \"contentConsent_performerId_fkey\"\nFOREIGN KEY (\"performerId\")\nREFERENCES \"public\".\"performer\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contentConsent_performerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentConsent_performerId_fkey",
+          "public",
+          "\"public\".\"contentConsent\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contentReview.contentReview_workspaceId_fkey",
+    "label": "Add foreign key \"contentReview_workspaceId_fkey\" on \"contentReview\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contentReview_workspaceId_fkey",
+        "table": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contentReview_workspaceId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_workspaceId_fkey",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contentReview_workspaceId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contentReview\"\nADD CONSTRAINT \"contentReview_workspaceId_fkey\"\nFOREIGN KEY (\"workspaceId\")\nREFERENCES \"public\".\"workspace\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contentReview_workspaceId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_workspaceId_fkey",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contentReview.contentReview_videoProductId_fkey",
+    "label": "Add foreign key \"contentReview_videoProductId_fkey\" on \"contentReview\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contentReview_videoProductId_fkey",
+        "table": "contentReview"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contentReview_videoProductId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_videoProductId_fkey",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contentReview_videoProductId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contentReview\"\nADD CONSTRAINT \"contentReview_videoProductId_fkey\"\nFOREIGN KEY (\"videoProductId\")\nREFERENCES \"public\".\"videoProduct\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contentReview_videoProductId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contentReview_videoProductId_fkey",
+          "public",
+          "\"public\".\"contentReview\""
+        ]
+      }
+    ]
+  }
+]

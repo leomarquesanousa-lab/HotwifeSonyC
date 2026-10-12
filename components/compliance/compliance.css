@@ -1,0 +1,75 @@
+.legal-page{padding:48px 6% 64px;max-width:1280px;margin:auto;color:#e7e9ec}.legal-page>header{max-width:850px;margin-bottom:40px}.legal-page h1{font-size:clamp(30px,4vw,48px);font-weight:500;line-height:1.15;letter-spacing:-1.5px;margin:18px 0}.legal-page h2{font-size:23px;font-weight:500;letter-spacing:-.5px;line-height:1.35;margin:0 0 16px}.legal-page .legal-lead{font-size:16px;line-height:1.8;color:#9fb2c3}.legal-page header small{display:block;color:#7892a9;font-size:12px;margin-top:20px}.legal-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:52px;align-items:start}.legal-toc{position:sticky;top:24px}.legal-toc nav{display:grid;gap:12px;border-left:1px solid #ffffff20;padding-left:20px;font-size:12px;line-height:1.5}.legal-toc strong{font-weight:500;color:#e7e9ec;margin-bottom:4px}.legal-toc a{color:#9fb2c3}.legal-body{min-width:0;max-width:780px}.legal-body>section{scroll-margin-top:24px;margin-bottom:40px}.legal-body p,.legal-body li{font-size:14px;color:#a7b5c0;line-height:1.9;overflow-wrap:anywhere}.legal-body ul{padding-left:22px}.legal-body li+li{margin-top:12px}.legal-body a{color:#b8cbdc;text-decoration:underline;text-underline-offset:3px}.legal-related{border-top:1px solid #ffffff18;padding-top:24px;display:flex;flex-wrap:wrap;gap:12px 22px;font-size:12px}.legal-groups{display:grid;gap:40px}.legal-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.legal-cards>a{display:grid;gap:10px;border:1px solid #ffffff16;border-radius:9px;padding:22px;background:#ffffff03;transition:border-color .2s}.legal-cards>a:hover{border-color:#9fb2c380}.legal-cards strong{font-weight:500;font-size:16px}.legal-cards span{color:#8fa4b6;font-size:13px;line-height:1.7}.legal-callout{padding:24px;border:1px solid #9fb2c340;background:#9fb2c309;border-radius:9px;margin-top:32px}.legal-reference{display:block;overflow-wrap:anywhere;font-family:monospace;font-size:15px;color:#e7e9ec}.legal-form{display:grid;gap:20px}.legal-form label{display:grid;gap:8px;color:#c1ced8;font-size:13px;line-height:1.6}.legal-form input,.legal-form select,.legal-form textarea{box-sizing:border-box;width:100%;min-width:0;border:1px solid #ffffff25;border-radius:7px;background:#15191d;color:#e7e9ec;padding:12px;font:inherit}.legal-form textarea{resize:vertical}.legal-field-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}.legal-form .legal-check{display:flex;align-items:flex-start;gap:12px}.legal-form input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:#9fb2c3;margin-top:3px}.legal-honeypot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}.legal-form [role=alert]{color:#ffc0b8}.legal-footer{flex-basis:100%;width:100%;font-family:Arial,sans-serif;font-size:11px;line-height:1.7}.legal-footer nav{display:flex;flex-wrap:wrap;gap:8px 20px}.legal-footer a{color:#9fb2c3;text-decoration:none;min-height:30px;display:inline-flex;align-items:center}.legal-footer a:hover{text-decoration:underline}.legal-footer p{font-size:11px;color:#7892a9;margin:16px 0 0}.public-legal-footer{background:#0c0c0c;border-top:1px solid #ffffff16;padding:28px max(20px,6%);color:#e7e9ec}.age-gate a:focus-visible,.age-gate button:focus-visible,.legal-page a:focus-visible,.legal-footer a:focus-visible,.legal-form input:focus-visible,.legal-form select:focus-visible,.legal-form textarea:focus-visible{outline:2px solid #9fb2c3;outline-offset:4px}@media(max-width:900px){.legal-layout{grid-template-columns:1fr;gap:32px}.legal-toc{position:static}.legal-toc nav{grid-template-columns:repeat(2,minmax(0,1fr))}.legal-toc strong{grid-column:1/-1}}@media(max-width:640px){.legal-page{padding:30px 20px 48px}.legal-cards,.legal-field-row{grid-template-columns:1fr}.legal-page h2{font-size:21px}.legal-body p,.legal-body li{font-size:14px}.legal-toc nav{grid-template-columns:1fr}.legal-footer nav{gap:6px 16px}}
+.age-gate-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #080c12;
+  color: #edf2f7;
+}
+.age-gate::backdrop {
+  background:
+    radial-gradient(ellipse at 15% 18%, #536a8750, transparent 48%),
+    radial-gradient(ellipse at 86% 80%, #61516c38, transparent 48%),
+    linear-gradient(125deg, #101720, #080c12 55%, #12121b);
+}
+.age-gate {
+  box-sizing: border-box;
+  width: min(540px, calc(100vw - 40px));
+  max-width: none;
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: 32px 40px 26px;
+  border: 1px solid #b5c9dd30;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #1c2630f5, #10161efc 55%, #15151efd);
+  box-shadow: 0 32px 100px #0009, inset 0 1px #ffffff0c;
+  color: #edf2f7;
+  font-family: Arial, sans-serif;
+  color-scheme: dark;
+}
+.age-gate *, .age-gate *::before, .age-gate *::after { box-sizing: border-box; }
+.age-gate-brand { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid #c3d3e318; }
+.age-gate-brand img { width: 148px; height: 46px; object-fit: contain; }
+.age-gate-brand>span { max-width: 90px; color: #a8b9ca; font-size: 9px; text-transform: uppercase; letter-spacing: 2px; line-height: 1.8; text-align: right; }
+.age-gate-intro { text-align: center; padding-top: 26px; }
+.age-gate-badge { display: inline-grid; place-items: center; width: 42px; height: 42px; border: 1px solid #adc6df45; border-radius: 50%; color: #c1d3e5; font-size: 13px; letter-spacing: 1px; background: #adc6df08; }
+.age-gate .age-gate-eyebrow { margin: 18px 0 8px; color: #b2c5d8; font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; }
+.age-gate h2 { margin: 0 0 14px; color: #f1f3f5; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(42px, 7vw, 58px); font-weight: 400; line-height: 1.08; letter-spacing: -2px; }
+.age-gate h2>span { color: #9cb8d2; }
+.age-gate-intro>p:last-child { margin: 0 auto; max-width: 370px; color: #b7c3cf; font-size: 13px; line-height: 1.8; }
+.age-gate-confirmations { display: grid; gap: 10px; margin: 25px 0 20px; }
+.age-gate-confirmations label { display: flex; align-items: flex-start; gap: 12px; min-height: 64px; padding: 13px 15px; border: 1px solid #c3d3e321; border-radius: 12px; background: #ffffff03; cursor: pointer; transition: border-color .2s, background-color .2s; }
+.age-gate-confirmations label:hover { border-color: #b2c9df60; }
+.age-gate-confirmations label:has(input:checked) { border-color: #a8c5df65; background: #aac8e00b; }
+.age-gate-confirmations input[type=checkbox] { appearance: none; position: relative; flex: 0 0 18px; width: 18px; height: 18px; margin: 2px 0 0; border: 1px solid #9aafc575; border-radius: 5px; background: #080c1250; cursor: pointer; }
+.age-gate-confirmations input:checked { background: #b5cde2; border-color: #b5cde2; }
+.age-gate-confirmations input:checked::after { content: ''; position: absolute; top: 3px; left: 5px; width: 5px; height: 8px; border: solid #101923; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.age-gate-confirmations label>span { color: #e2e9ef; font-size: 12px; line-height: 1.5; }
+.age-gate-confirmations strong { display: block; margin-top: 3px; font-weight: 400; font-size: 11px; color: #a7b7c6; }
+.age-gate-actions { display: grid; grid-template-columns: 1fr 86px; gap: 10px; }
+.age-gate-enter, .age-gate-exit { display: inline-flex; justify-content: center; align-items: center; gap: 12px; min-height: 50px; padding: 13px 16px; border: 1px solid transparent; border-radius: 10px; font: 600 12px Arial, sans-serif; text-decoration: none; cursor: pointer; }
+.age-gate-enter { color: #101a24; background: linear-gradient(115deg, #c8daea, #9db9d2); box-shadow: 0 6px 24px #9abbd21a; }
+.age-gate-enter:hover:not(:disabled) { background: #d4e3f0; }
+.age-gate-enter:disabled { opacity: .48; cursor: not-allowed; box-shadow: none; }
+.age-gate .age-gate-exit { color: #c1ceda; background: #ffffff03; border-color: #c3d3e328; }
+.age-gate-exit:hover { background: #ffffff09; }
+.age-gate-footer { text-align: center; margin-top: 24px; }
+.age-gate-footer p { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 16px; font-size: 10px; color: #a7b7c6; }
+.age-gate-footer nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 2px 16px; padding-top: 13px; border-top: 1px solid #c3d3e318; }
+.age-gate-footer a { display: inline-flex; align-items: center; min-height: 32px; color: #b4c7d9; font-size: 10px; text-decoration: none; }
+.age-gate-footer a:hover { color: #eef5fc; text-decoration: underline; text-underline-offset: 4px; }
+.age-gate-footer small { display: block; margin-top: 3px; color: #9aaabb; font-size: 9px; line-height: 1.6; }
+.age-gate :is(input, button, a):focus-visible { outline: 2px solid #c9e2f8; outline-offset: 4px; }
+@media (max-width: 480px) {
+  .age-gate { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 22px 22px 20px; border-radius: 20px; }
+  .age-gate-brand { padding-bottom: 16px; }
+  .age-gate-brand img { width: 132px; height: 41px; }
+  .age-gate-intro { padding-top: 20px; }
+  .age-gate-confirmations { margin-top: 20px; }
+  .age-gate-confirmations label { padding: 12px; }
+  .age-gate-footer { margin-top: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .age-gate * { transition: none; } }
+@media (forced-colors: active) { .age-gate-confirmations input[type=checkbox] { appearance: auto; } .age-gate-confirmations input:checked::after { content: none; } }

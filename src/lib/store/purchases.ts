@@ -30,6 +30,8 @@ export async function requirePurchasedVideo(productId: string) {
   }
   const product = await db.orm.public.VideoProduct.where({ id: productId }).first();
   if (!product) throw new PurchaseAccessError('Video unavailable.', 404);
+  // Safety takedowns block new playback sessions without changing admin/Purchase authorization.
+  if (['SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) throw new PurchaseAccessError('Video unavailable pending a safety review.', 403);
   const workspace = await db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first();
   if (!workspace) throw new PurchaseAccessError('Video unavailable.', 404);
   return product;
