@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '@/src/prisma/db';
+import { getAdministrativeMembership } from '@/src/lib/auth/admin-access';
 import { getCurrentSession } from '@/src/lib/auth/session';
 
 export class PurchaseAccessError extends Error {
@@ -22,8 +23,11 @@ export async function listPurchasedVideos() {
 export async function requirePurchasedVideo(productId: string) {
   const user = await requireCustomer();
   if (!z.string().uuid().safeParse(productId).success) throw new PurchaseAccessError('Video access denied.', 403);
-  const purchase = await db.orm.public.Purchase.where({ userId: user.id, videoProductId: productId, status: 'PAID' }).first();
-  if (!purchase) throw new PurchaseAccessError('You have not purchased this video.', 403);
+  const administrativeAccess = await getAdministrativeMembership(user.id);
+  if (!administrativeAccess) {
+    const purchase = await db.orm.public.Purchase.where({ userId: user.id, videoProductId: productId, status: 'PAID' }).first();
+    if (!purchase) throw new PurchaseAccessError('You have not purchased this video.', 403);
+  }
   const product = await db.orm.public.VideoProduct.where({ id: productId }).first();
   if (!product) throw new PurchaseAccessError('Video unavailable.', 404);
   const workspace = await db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first();

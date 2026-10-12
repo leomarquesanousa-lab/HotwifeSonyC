@@ -1,0 +1,30 @@
+﻿.dialog {
+  box-sizing: border-box;
+  width: min(88vw, 1440px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #ffffff26;
+  border-radius: 12px;
+  background: #080808;
+  color: #f1f1f1;
+  box-shadow: 0 24px 100px #0009;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+.dialog::backdrop { background: #000d; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 12px 8px 20px; min-height: 60px; box-sizing: border-box; }
+.header h2 { font-size: 16px; line-height: 1.4; font-weight: 500; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.close { flex-shrink: 0; display: grid; place-items: center; width: 44px; height: 44px; background: transparent; color: inherit; border: 0; border-radius: 6px; cursor: pointer; }
+.close:hover { background: #ffffff15; }
+.close:focus-visible { outline: 2px solid #9fb2c3; outline-offset: -2px; }
+.content { display: grid; place-items: center; min-height: min(200px, 35dvh); }
+.content p { padding: 16px; margin: 0; text-align: center; }
+.video { display: block; width: 100%; height: auto; max-height: calc(100dvh - 94px); object-fit: contain; background: #000; }
+@media (max-width: 640px), (max-height: 500px) {
+  .dialog { width: calc(100vw - 16px); max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); border-radius: 8px; }
+  .header { padding-left: 12px; }
+  .video { max-height: calc(100dvh - 78px); }
+  .content { min-height: 0; }
+}
