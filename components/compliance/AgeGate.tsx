@@ -14,7 +14,6 @@ export default function AgeGate() {
   const gated = path === '/' || /^\/(videos|checkout)(\/|$)/.test(path);
   const accepted = useSyncExternalStore(subscribe, acknowledged, () => false);
   const [legalAge, setLegalAge] = useState(false);
-  const [voluntary, setVoluntary] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (!gated || accepted) return;
@@ -30,10 +29,9 @@ export default function AgeGate() {
     <header className="age-gate-brand"><Image src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" width={180} height={56} sizes="148px" loading="eager"/><span>A private collection</span></header>
     <div className="age-gate-intro"><span className="age-gate-badge">18+</span><p className="age-gate-eyebrow">An invitation to explore</p><h2 id="adult-entry-title">Adults only<span>.</span></h2><p id="adult-entry-description">This website contains age-restricted adult content. You must be at least 18, or the legal age in your jurisdiction, to enter.</p></div>
     <div className="age-gate-confirmations">
-      <label><input type="checkbox" checked={legalAge} onChange={event => setLegalAge(event.target.checked)}/><span>I am of legal age<strong>At least 18, and of legal age where I am.</strong></span></label>
-      <label><input type="checkbox" checked={voluntary} onChange={event => setVoluntary(event.target.checked)}/><span>I choose to enter voluntarily<strong>Viewing adult content is lawful where I am.</strong></span></label>
+      <label><input type="checkbox" checked={legalAge} onChange={event => setLegalAge(event.target.checked)}/><span>I confirm that I am 18 years of age or older.</span></label>
     </div>
-    <div className="age-gate-actions"><button type="button" className="age-gate-enter" disabled={!legalAge || !voluntary} onClick={() => { memoryAcknowledgment = true; try { sessionStorage.setItem(entryKey, 'yes'); } catch {} window.dispatchEvent(new Event('adult-entry-change')); }}>Enter site<ArrowUpRight size={18} aria-hidden="true"/></button><a className="age-gate-exit" href="https://www.google.com/" rel="noreferrer">Exit</a></div>
+    <div className="age-gate-actions"><button type="button" className="age-gate-enter" disabled={!legalAge} onClick={() => { memoryAcknowledgment = true; try { sessionStorage.setItem(entryKey, 'yes'); } catch {} window.dispatchEvent(new Event('adult-entry-change')); }}>Enter Site<ArrowUpRight size={18} aria-hidden="true"/></button><a className="age-gate-exit" href="https://www.google.com/" rel="noreferrer">Exit</a></div>
     <footer className="age-gate-footer"><p><ShieldCheck size={14} aria-hidden="true"/>Your choice is remembered for this session.</p><nav aria-label="Age gate legal and safety links"><Link href="/age-verification">Age policy</Link><Link href="/compliance">Safety & Compliance</Link><Link href="/report-content">Report content</Link></nav><small>This confirmation is not identity or age verification.</small></footer>
   </dialog></div>;
 }
