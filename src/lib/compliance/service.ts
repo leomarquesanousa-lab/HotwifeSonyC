@@ -68,6 +68,33 @@ export async function assertCommercialPublication(tx: AuthTransaction, workspace
   await assertReviewEvidence(tx, { ...existing, ...input }, review);
 }
 
+// Existing registries remain the source of truth; never infer consent for a different upload.
+export async function ownerPublicationContext(tx: AuthTransaction, workspaceId: string, actorId: string, product: ContentFields & { id?: string; complianceStatus?: string }) {
+  const original = product.id ? await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first() : null;
+  const review = original ? await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: original.id }).first() : null;
+  const reusableReview = review?.status === 'APPROVED' && review.fingerprint === contentFingerprint(product) ? review : null;
+  const recordedOn = original && mediaFingerprint(original) === mediaFingerprint(product) ? review?.recordedOn ?? null : null;
+  const assets = [product.mediaAssetId, product.teaserMediaAssetId, product.thumbnailMediaAssetId].filter((id): id is string => !!id);
+  const links = assets.length ? await tx.orm.public.MediaAssetPerformer.where({ workspaceId }).where(row => row.mediaAssetId.in(assets)).all() : [];
+  const records = original ? await tx.orm.public.ContentConsent.where({ workspaceId, videoProductId: original.id }).orderBy(row => row.recordedAt.desc()).all() : [];
+  const latest = new Map<string, typeof records[number]>();
+  for (const row of records) if (!latest.has(row.performerId)) latest.set(row.performerId, row);
+  const people = [...new Set([...links.map(row => row.performerId), ...latest.keys()])];
+  const missingConsentIds = people.filter(id => { const row = latest.get(id); return !row || row.status !== 'RECORDED' || !row.evidenceRef || !row.depiction || !row.distribution || !row.publication || row.downloads || row.mediaFingerprint !== mediaFingerprint(product); });
+  const pending: string[] = [];
+  if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus ?? '') || (review && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(review.status))) pending.push('Resolve the existing safety restriction in Safety & Compliance.');
+  try { await assertIdentity(tx, workspaceId, 'USER', actorId, new Date().toISOString().slice(0, 10)); }
+  catch (error) { if (!(error instanceof ComplianceError)) throw error; pending.push('Creator: current verified adult identity required.'); }
+  for (const id of people) {
+    const performer = await tx.orm.public.Performer.where({ workspaceId, id, status: 'ACTIVE' }).first();
+    if (!performer) { pending.push('A depicted participant is unavailable.'); continue; }
+    try { await assertIdentity(tx, workspaceId, 'PERFORMER', id, recordedOn ?? new Date().toISOString().slice(0, 10)); }
+    catch (error) { if (!(error instanceof ComplianceError)) throw error; pending.push(performer.displayName + ': current adult identity verification required.'); }
+    if (latest.get(id) && latest.get(id)!.status !== 'RECORDED') pending.push(performer.displayName + ': resolve disputed or revoked consent in Safety & Compliance.');
+  }
+  return { recordedOn, needsAttestation: !reusableReview, people, missingConsentIds, pending, reusableReview };
+}
+
 // Invoked only after server-side OWNER authorization, under the store lock.
 // Reuses the same evidence checks as a manual review; never verifies identity here.
 export async function completeOwnerPublication(tx: AuthTransaction, workspaceId: string, actorId: string, product: Awaited<ReturnType<typeof productIn>>, evidence?: OwnerPublication) {
@@ -76,8 +103,14 @@ export async function completeOwnerPublication(tx: AuthTransaction, workspaceId:
   const existing = await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: product.id }).first();
   const blocked = ['REJECTED', 'SUSPENDED', 'REMOVED'];
   if (blocked.includes(product.complianceStatus) || (existing && blocked.includes(existing.status))) throw new ComplianceError('Resolve the existing safety restriction before publishing.', 409);
-  if (!evidence && !existing) throw new ComplianceError('Complete the legal checks in Create Product before publishing.', 409);
-  const review = evidence ? { ...evidence, providerUserId: actorId } : existing!;
+  const context = await ownerPublicationContext(tx, workspaceId, actorId, product);
+  if (context.pending.length) throw new ComplianceError(context.pending.join(' '), 409);
+  const changesEvidence = !!evidence?.consents.length || (!!evidence?.recordedOn && evidence.recordedOn !== context.recordedOn);
+  if ((context.needsAttestation || changesEvidence) && !evidence?.attest) throw new ComplianceError('Confirm the pending content review before publishing.', 409);
+  const review = { providerUserId: actorId, recordedOn: evidence?.recordedOn ?? context.recordedOn,
+    allPersonsConfirmed: !!evidence?.attest || !!context.reusableReview?.allPersonsConfirmed,
+    prohibitedChecked: !!evidence?.attest || !!context.reusableReview?.prohibitedChecked,
+    copyrightConfirmed: !!evidence?.attest || !!context.reusableReview?.copyrightConfirmed };
   if (!review.recordedOn || review.recordedOn > new Date().toISOString().slice(0, 10)) throw new ComplianceError('A valid recording date, not in the future, is required.', 409);
   if (evidence) {
     for (const consent of evidence.consents) {

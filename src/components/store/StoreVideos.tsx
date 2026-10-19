@@ -3,7 +3,7 @@ import Link from 'next/link';
 import WatchFullVideo from '@/components/storefront/WatchFullVideo';
 import DeleteVideoDialog from './DeleteVideoDialog';
 import PermanentlyDeleteVideo from './PermanentlyDeleteVideo';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Pencil, Archive, Check, X, Store, Trash2 } from 'lucide-react';
 import { formatPublishDate, parsePublishDate, ownerPublicationSchema } from '@/src/lib/store/product-fields';
 import { priceLabel } from '@/components/storefront/data';
@@ -12,7 +12,8 @@ import type { StoreMedia, StoreProduct } from '@/src/lib/store/types';
 
 type Form = { id?: string; mediaAssetId: string; teaserMediaAssetId: string; thumbnailMediaAssetId: string; title: string; slug: string; description: string; price: string; category: string; featured: boolean; status: string; publishedAt: string };
 const emptyForm: Form = { mediaAssetId: '', teaserMediaAssetId: '', thumbnailMediaAssetId: '', title: '', slug: '', description: '', price: '', category: '', featured: false, status: 'DRAFT', publishedAt: '' };
-const emptyLegal = { recordedOn: '', allPersonsConfirmed: false, prohibitedChecked: false, copyrightConfirmed: false, consentConfirmed: false, consents: [] as { performerId: string; evidenceRef: string }[] };
+type ComplianceState = { recordedOn: string | null; needsAttestation: boolean; people: string[]; missingConsentIds: string[]; pending: string[] };
+const emptyLegal = { recordedOn: '', consents: [] as { performerId: string; evidenceRef: string }[] };
 function slugFromTitle(title: string) {
   return title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
@@ -40,7 +41,7 @@ function productPayload(product: StoreProduct) {
   return { title: product.title, slug: product.slug, description: product.description, priceCents: product.priceCents, currency: 'USD', category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt };
 }
 export default function StoreVideos({ initialProducts, media: initialMedia, locale, canDelete = false, canPublishDirectly = false, performers = [] }: { initialProducts: StoreProduct[]; media: StoreMedia[]; locale: string; canDelete?: boolean; canPublishDirectly?: boolean; performers?: { id: string; displayName: string }[] }) {
-  const [collectLegal, setCollectLegal] = useState(false);
+  const [compliance, setCompliance] = useState<{ key: string; state?: ComplianceState; error?: string } | null>(null);
   const [legal, setLegal] = useState(emptyLegal);
   const [products,setProducts] = useState(initialProducts);
   const [listFilter, setListFilter] = useState('ACTIVE');
@@ -56,6 +57,20 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
   const [deleteTarget, setDeleteTarget] = useState<StoreProduct | null>(null);
   const locked = busy || isUploading;
   const activeUpload = [...uploads].reverse().find(item => ['STARTING','UPLOADING','COMPLETING'].includes(item.status));
+  const complianceKey = form ? JSON.stringify({ id: form.id, mediaAssetId: form.mediaAssetId, teaserMediaAssetId: form.teaserMediaAssetId || null, thumbnailMediaAssetId: form.thumbnailMediaAssetId || null, title: form.title, slug: form.slug, description: form.description, category: form.category }) : '';
+  const readiness = compliance?.key === complianceKey ? compliance.state : undefined;
+  useEffect(() => {
+    if (!canPublishDirectly || !complianceKey || !JSON.parse(complianceKey).mediaAssetId) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/store/products/compliance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: complianceKey, signal: controller.signal });
+        const data = await response.json();
+        if (!controller.signal.aborted) setCompliance(response.ok ? { key: complianceKey, state: data } : { key: complianceKey, error: data.error });
+      } catch { if (!controller.signal.aborted) setCompliance({ key: complianceKey, error: 'Unable to check compliance. Reopen the editor to retry.' }); }
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [complianceKey, canPublishDirectly]);
   async function upload(key: UploadKey, file: File) {
     const allowed = key === 'thumbnailMediaAssetId' ? ['image/jpeg','image/png','image/webp'] : ['video/mp4','video/quicktime','video/x-m4v'];
     if (!allowed.includes(file.type)) { setError(key === 'thumbnailMediaAssetId' ? 'Choose a JPG, PNG, or WebP image.' : 'Choose an MP4, MOV, or M4V video.'); return; }
@@ -67,12 +82,15 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to upload file.'); }
     finally { setUploadingField(null); }
   }
-  function update<K extends keyof Form>(key: K, value: Form[K]) { setForm(current => current ? { ...current, [key]: value } : current); }
+  function update<K extends keyof Form>(key: K, value: Form[K]) {
+    if (['mediaAssetId', 'teaserMediaAssetId', 'thumbnailMediaAssetId'].includes(key)) setLegal(emptyLegal);
+    setForm(current => current ? { ...current, [key]: value } : current);
+  }
   function updateTitle(title: string) {
     setForm(current => current ? { ...current, title, slug: slugEdited ? current.slug : slugFromTitle(title) } : current);
   }
   function edit(product: StoreProduct) {
-    setCollectLegal(false); setLegal(emptyLegal);
+    setLegal(emptyLegal); setCompliance(null);
     setError('');setNotice('');
     setSlugEdited(true);
     setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: formatPublishDate(product.publishedAt) });
@@ -126,16 +144,24 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
     // Preserve the original instant when the calendar date is untouched.
     const dateChanges = existing && form.publishedAt === formatPublishDate(existing.publishedAt)
       ? {} : { publishedAt: form.publishedAt || null };
-    const status = publish ? 'PUBLISHED' : form.status;
+    const draft = submitter instanceof HTMLButtonElement && submitter.value === 'DRAFT';
+    const status = publish ? 'PUBLISHED' : draft ? 'DRAFT' : form.status;
     let ownerPublication;
-    if (canPublishDirectly && collectLegal && status === 'PUBLISHED') {
-      const checked = ownerPublicationSchema.safeParse(legal);
-      if (!checked.success) { setError('Complete the recording date, select every depicted person with a consent evidence reference, and confirm all legal checks before publishing. You can still save as Draft.'); return; }
+    if (canPublishDirectly && status === 'PUBLISHED') {
+      if (!readiness) { setError('Wait for the compliance check to finish.'); return; }
+      if (readiness.pending.length) { setError(readiness.pending.join(' ')); return; }
+      if (!readiness.recordedOn && !legal.recordedOn) { setError('Add the missing recording date. Draft remains available.'); return; }
+      if (!publish && (readiness.needsAttestation || legal.consents.length > 0)) { setError('Use Publish to confirm the pending content review, or Save Draft.'); return; }
+      const selected = [...new Set([...readiness.people, ...legal.consents.map(row => row.performerId)])];
+      const missing = [...new Set([...readiness.missingConsentIds, ...selected.filter(id => !readiness.people.includes(id))])];
+      if (!selected.length || missing.some(id => !legal.consents.find(row => row.performerId === id)?.evidenceRef.trim())) { setError('Identify every depicted participant and add the missing consent evidence.'); return; }
+      const checked = ownerPublicationSchema.safeParse({ ...(legal.recordedOn ? { recordedOn: legal.recordedOn } : {}), ...((publish && (readiness.needsAttestation || legal.consents.length > 0)) ? { attest: true } : {}), consents: legal.consents.filter(row => row.evidenceRef.trim()) });
+      if (!checked.success) { setError(checked.error.issues[0]?.message ?? 'Check the missing evidence.'); return; }
       ownerPublication = checked.data;
     }
     await save({ ...mediaChanges, ...dateChanges, ...(ownerPublication ? { ownerPublication } : {}), title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status },form.id);
   }
-  return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setSlugEdited(false);setForm({...emptyForm});setLegal(emptyLegal);setCollectLegal(canPublishDirectly);setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
+  return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setSlugEdited(false);setForm({...emptyForm});setLegal(emptyLegal);setCompliance(null);setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
     {error && <p role="alert" className="mb-5 rounded-lg border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mb-5 text-sm text-emerald-300">{notice}</p>}
     {form && <form onSubmit={submit} onInvalidCapture={event => {
       const field = event.target;
@@ -145,32 +171,40 @@ export default function StoreVideos({ initialProducts, media: initialMedia, loca
         logBlockedSubmit();
       }
     }} className="mb-8 rounded-xl border border-white/10 bg-[#0f1522] p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-medium">{form.id ? 'Edit Product' : 'Create Product'}</h2><button type="button" aria-label="Close product editor" disabled={locked} className={buttonClass} onClick={() => setForm(null)}><X size={17}/></button></div><fieldset disabled={locked} className="grid min-w-0 gap-5 sm:grid-cols-2">
+      <h3 className="text-sm font-medium sm:col-span-2">Information</h3>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Title<input className={fieldClass} required maxLength={160} value={form.title} onChange={event => updateTitle(event.target.value)}/></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Slug<input className={fieldClass} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={160} placeholder="your-video-title" value={form.slug} onChange={event => { setSlugEdited(true); update('slug',event.target.value); }}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70 sm:col-span-2">Description<textarea className={fieldClass} required rows={4} maxLength={5000} value={form.description} onChange={event => update('description',event.target.value)}/></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Price (USD)<input className={fieldClass} inputMode="decimal" placeholder="19.99" required value={form.price} onChange={event => update('price',event.target.value)}/></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Category<input className={fieldClass} required maxLength={80} value={form.category} onChange={event => update('category',event.target.value)}/></label>
+      <details className="rounded-lg border border-white/10 p-3 sm:col-span-2"><summary className="cursor-pointer text-xs text-white/60">Optional settings</summary><div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Slug<input className={fieldClass} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={160} placeholder="your-video-title" value={form.slug} onChange={event => { setSlugEdited(true); update('slug',event.target.value); }}/></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70">Publish Date (MM/DD/YYYY, optional)<input className={fieldClass} type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" value={form.publishedAt} onChange={event => update('publishedAt',event.target.value)}/><span className="text-white/40">Dates start at midnight UTC. Leave blank to publish now.</span></label>
+      <label className="flex min-h-11 items-center gap-3 self-center text-sm"><input type="checkbox" checked={form.featured} onChange={event => update('featured',event.target.checked)}/> Featured on the storefront</label>
+      </div></details>
+      <h3 className="text-sm font-medium sm:col-span-2">Upload</h3>
       <ProductUpload label="Full Video" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.mediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'mediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('mediaAssetId',file)}/>
       <ProductUpload label="Teaser (optional)" accept="video/mp4,video/quicktime,video/x-m4v" fileName={media.find(item => item.id === form.teaserMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'teaserMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('teaserMediaAssetId',file)} help="The teaser will be publicly playable in full."/>
       <ProductUpload label="Cover Image (optional)" accept="image/jpeg,image/png,image/webp" fileName={media.find(item => item.id === form.thumbnailMediaAssetId)?.originalFileName} disabled={locked} progress={uploadingField === 'thumbnailMediaAssetId' ? activeUpload?.progress ?? 0 : undefined} onFile={file => void upload('thumbnailMediaAssetId',file)} help="Without a cover, the video thumbnail or default artwork is used."/>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Price (USD)<input className={fieldClass} inputMode="decimal" placeholder="19.99" required value={form.price} onChange={event => update('price',event.target.value)}/></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Category<input className={fieldClass} required maxLength={80} value={form.category} onChange={event => update('category',event.target.value)}/></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Status<select className={fieldClass} value={form.status} onChange={event => update('status',event.target.value)}><option value="DRAFT">Draft</option><option value="PUBLISHED">Published</option><option value="ARCHIVED">Archived</option></select></label>
-      <label className="grid min-w-0 gap-2 text-xs text-white/70">Publish Date (MM/DD/YYYY, optional)<input className={fieldClass} type="text" inputMode="numeric" placeholder="MM/DD/YYYY" maxLength={10} pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}" value={form.publishedAt} onChange={event => update('publishedAt',event.target.value)}/><span className="text-white/40">Dates start at midnight UTC. Leave blank to publish now.</span></label>
-      <label className="flex min-h-11 items-center gap-3 self-center text-sm"><input type="checkbox" checked={form.featured} onChange={event => update('featured',event.target.checked)}/> Featured on the storefront</label>
-      {canPublishDirectly && <div className="grid gap-4 rounded-lg border border-white/10 p-4 sm:col-span-2">
-        <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={collectLegal} onChange={event => setCollectLegal(event.target.checked)}/> Complete legal checks here for direct publication</label>
-        <p className="text-xs text-white/50">Existing verified adult identities are required for you and every depicted person. Saving as Draft does not require these fields. Leave unchecked to reuse existing content-specific legal records.</p>
-        {collectLegal && <>
-          <label className="grid gap-2 text-xs text-white/70">Recording date<input type="date" className={fieldClass} max={new Date().toISOString().slice(0,10)} value={legal.recordedOn} onChange={event => setLegal(current => ({...current, recordedOn: event.target.value}))}/></label>
-          <p className="text-xs text-white/60">Select every depicted person, including yourself. Evidence must cover depiction, distribution and publication; downloads are excluded.</p>
-          {!performers.length && <p className="text-sm text-amber-200">No active performers are registered. Register depicted people and verify their identities before publishing.</p>}
-          {performers.map(person => { const selected = legal.consents.find(row => row.performerId === person.id); return <div key={person.id} className="grid gap-2">
-            <label className="flex items-center gap-3 text-sm"><input type="checkbox" checked={!!selected} onChange={event => setLegal(current => ({...current, consents: event.target.checked ? [...current.consents, {performerId: person.id, evidenceRef: ''}] : current.consents.filter(row => row.performerId !== person.id)}))}/>{person.displayName}</label>
-            {selected && <label className="grid gap-2 text-xs text-white/70">Consent evidence reference for {person.displayName}<input className={fieldClass} maxLength={300} value={selected.evidenceRef} placeholder="Protected record reference, not a raw ID or signed URL" onChange={event => setLegal(current => ({...current, consents: current.consents.map(row => row.performerId === person.id ? {...row, evidenceRef: event.target.value} : row)}))}/></label>}
-          </div>; })}
-          {([['allPersonsConfirmed', 'I identified every depicted person, including the creator.'], ['prohibitedChecked', 'I reviewed the content and confirm it contains no prohibited material.'], ['copyrightConfirmed', 'I hold the rights required to sell this content.'], ['consentConfirmed', 'I inspected the evidence and confirm every selected person consented to depiction, distribution and publication.']] as const).map(([key,label]) => <label key={key} className="flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1" checked={legal[key]} onChange={event => setLegal(current => ({...current, [key]: event.target.checked}))}/>{label}</label>)}
+      {canPublishDirectly && <div className="grid gap-3 rounded-lg border border-white/10 p-4 sm:col-span-2">
+        <h3 className="text-sm font-medium">Publication compliance</h3>
+        <p className="text-xs text-white/50">Verified identities and valid records for this content are reused automatically. Draft requires no legal checks.</p>
+        <div className="flex gap-4 text-xs text-violet-300"><Link href={'/' + locale + '/app/performers'}>Participant registry</Link><Link href={'/' + locale + '/app/compliance'}>Identities &amp; protected legal records</Link></div>
+        {!form.mediaAssetId ? <p className="text-xs text-white/60">Upload a video to check its records.</p> : !readiness ? <p role="status" className="text-xs text-white/60">{compliance?.key === complianceKey && compliance.error ? compliance.error : 'Checking existing records...'}</p> : <>
+          <p role="status" className="text-sm text-emerald-300">{!readiness.pending.length && readiness.recordedOn && !readiness.needsAttestation && readiness.people.length > 0 && !readiness.missingConsentIds.length ? 'Required records are valid. Ready to publish.' : 'Only the items below need attention.'}</p>
+          {readiness.pending.map(item => <p key={item} className="text-xs text-amber-200">{item}</p>)}
+          {!readiness.recordedOn && <label className="grid gap-2 text-xs text-white/70">Missing recording date<input type="date" className={fieldClass} max={new Date().toISOString().slice(0,10)} value={legal.recordedOn} onChange={event => setLegal(current => ({...current, recordedOn: event.target.value}))}/></label>}
+          <details open={!readiness.people.length || readiness.missingConsentIds.length > 0}><summary className="cursor-pointer text-xs text-white/70">Depicted participants ({new Set([...readiness.people, ...legal.consents.map(row => row.performerId)]).size}) - review or add</summary>
+            <p className="my-3 text-xs text-white/50">Include every depicted person, including yourself. Linked participants are already included. Evidence must cover this content, depiction, distribution and publication, with applicable 2257/2257A documentation.</p>
+            {!performers.length && <p className="text-xs text-amber-200">Register participants and verify their adult identities first.</p>}
+            {performers.map(person => { const linked = readiness.people.includes(person.id); const selected = legal.consents.find(row => row.performerId === person.id); const needsEvidence = readiness.missingConsentIds.includes(person.id) || (!linked && !!selected); return <div key={person.id} className="my-3 grid gap-2">
+              <label className="flex items-center gap-3 text-sm"><input type="checkbox" disabled={linked} checked={linked || !!selected} onChange={event => setLegal(current => ({...current, consents: event.target.checked ? [...current.consents, {performerId: person.id, evidenceRef: ''}] : current.consents.filter(row => row.performerId !== person.id)}))}/>{person.displayName}{linked && !needsEvidence ? ' - consent on file' : ''}</label>
+              {needsEvidence && <label className="grid gap-2 text-xs text-white/70">Missing consent evidence reference<input className={fieldClass} maxLength={300} value={selected?.evidenceRef ?? ''} placeholder="Protected record reference" onChange={event => setLegal(current => ({...current, consents: [...current.consents.filter(row => row.performerId !== person.id), {performerId: person.id, evidenceRef: event.target.value}]}))}/></label>}
+            </div>; })}
+          </details>
+          {(readiness.needsAttestation || legal.consents.length > 0) && <p id="publication-confirmation" className="text-xs text-white/60">By clicking Publish, I confirm that I reviewed this content, identified every depicted adult, verified consent to depiction, distribution and publication, hold the required distribution rights, and maintain applicable 18 U.S.C. 2257/2257A records. The content contains no prohibited material.</p>}
         </>}
       </div>}
-      <div className="flex flex-wrap gap-3 sm:col-span-2"><button className={`${buttonClass} bg-violet-500/25 text-violet-200`} type="submit">{busy ? 'Saving...' : 'Save'}</button><button className={`${buttonClass} text-emerald-300`} type="submit" value="PUBLISHED">Publish</button><button type="button" className={buttonClass} onClick={() => setForm(null)}>Cancel</button></div>
+      <div className="flex flex-wrap gap-3 sm:col-span-2">{form.id && <button className={buttonClass} type="submit">Save Changes</button>}<button className={`${buttonClass} text-emerald-300`} type="submit" value="PUBLISHED" aria-describedby={canPublishDirectly && readiness && (readiness.needsAttestation || legal.consents.length > 0) ? "publication-confirmation" : undefined}>{busy ? 'Saving...' : 'Publish'}</button><button type="submit" value="DRAFT" className={buttonClass}>Save Draft</button><button type="button" className={buttonClass} onClick={() => setForm(null)}>Cancel</button></div>
     </fieldset></form>}
     <label className="mb-4 flex items-center gap-3 text-sm">Show videos<select aria-label="Show videos" className="rounded-lg border border-white/15 bg-[#111827] px-3 py-2" value={listFilter} onChange={event => setListFilter(event.target.value)}><option value="ACTIVE">Active</option><option value="ARCHIVED">Archived</option><option value="ALL">All</option></select></label>
     {!visibleProducts.length ? <div className="rounded-xl border border-white/10 p-10 text-center"><h2 className="text-lg">No videos in this view.</h2><p className="mt-2 text-sm text-white/45">Choose another filter or create a product to prepare it for sale.</p></div> : <div className="grid gap-4">{visibleProducts.map(product => <article key={product.id} className="flex min-w-0 flex-wrap gap-5 rounded-xl border border-white/10 bg-[#101623] p-5"><img src={`/api/store/products/${product.id}/thumbnail?v=${encodeURIComponent(product.updatedAt)}`} alt={`Cover for ${product.title}`} className="h-24 w-36 rounded-lg object-cover"/><div className="min-w-0 flex-1 basis-52"><div className="flex flex-wrap items-center gap-3"><h2 className="break-words text-lg font-medium">{product.title}</h2><span className="rounded bg-white/5 px-2 py-1 text-[10px]">{product.status}</span>{product.featured && <span className="text-xs text-violet-300">Featured</span>}</div><p className="mt-2 text-sm text-violet-200">{priceLabel(product.priceCents,product.currency)} · {product.category}</p><p className="mt-2 break-all text-xs text-white/40">Video: {media.find(item => item.id === product.mediaAssetId)?.originalFileName ?? 'Unavailable'}<br/>Teaser: {product.teaserMediaAssetId ? media.find(item => item.id === product.teaserMediaAssetId)?.originalFileName ?? 'Unavailable' : 'None'}</p><p className="mt-2 text-xs text-white/40">/{product.slug}{product.publishedAt && new Date(product.publishedAt).getTime() > Date.now() ? ' · Scheduled' : ''}</p></div><div className="flex flex-wrap items-center gap-2"><button className={buttonClass} disabled={locked} onClick={() => edit(product)}><Pencil size={15}/> Edit</button>{canDelete && product.status !== 'ARCHIVED' && <button type="button" className={buttonClass + ' cursor-pointer border-rose-400/20 text-rose-300 hover:bg-rose-400/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rose-300'} disabled={locked} aria-label={'Remove from Sale: ' + product.title} onClick={() => { setError(''); setNotice(''); setDeleteTarget(product); }}><Trash2 size={15} aria-hidden="true"/> Remove from Sale</button>}{canDelete && <PermanentlyDeleteVideo product={product} disabled={locked} onDeleted={id => { setProducts(current => current.filter(item => item.id !== id)); if (form?.id === id) setForm(null); setError(''); setNotice('Video product permanently deleted. Media Library and R2 media preserved.'); }}/>}<WatchFullVideo video={product} className={buttonClass} label="Assistir vídeo completo"/>{product.status !== 'PUBLISHED' && <button className={`${buttonClass} text-emerald-300`} disabled={locked} onClick={() => void save({...productPayload(product),status:'PUBLISHED',publishedAt:null},product.id)}><Check size={15}/> Publish</button>}{!canDelete && product.status !== 'ARCHIVED' && <button className={`${buttonClass} text-white/55`} disabled={locked} onClick={() => void save({...productPayload(product),status:'ARCHIVED'},product.id)}><Archive size={15}/> Archive</button>}{product.status === 'PUBLISHED' && <Link className={buttonClass} href={`/videos/${product.slug}`}>View</Link>}</div></article>)}</div>}

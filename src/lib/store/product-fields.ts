@@ -2,13 +2,10 @@ import { z } from 'zod';
 import { dateOnly } from '@/src/lib/compliance/validation';
 
 export const ownerPublicationSchema = z.object({
-  recordedOn: dateOnly.refine(value => value <= new Date().toISOString().slice(0, 10), 'The recording date cannot be in the future.'),
-  allPersonsConfirmed: z.literal(true),
-  prohibitedChecked: z.literal(true),
-  copyrightConfirmed: z.literal(true),
-  consentConfirmed: z.literal(true),
-  consents: z.array(z.object({ performerId: z.string().uuid(), evidenceRef: z.string().trim().min(5).max(300) }).strict()).min(1).max(100)
-    .refine(rows => new Set(rows.map(row => row.performerId)).size === rows.length, 'Select each depicted person only once.'),
+  recordedOn: dateOnly.refine(value => value <= new Date().toISOString().slice(0, 10), 'The recording date cannot be in the future.').optional(),
+  attest: z.literal(true).optional(),
+  consents: z.array(z.object({ performerId: z.string().uuid(), evidenceRef: z.string().trim().min(5).max(300) }).strict()).max(100)
+    .refine(rows => new Set(rows.map(row => row.performerId)).size === rows.length, 'Select each depicted person only once.').default([]),
 }).strict();
 export type OwnerPublication = z.infer<typeof ownerPublicationSchema>;
 
