@@ -4,17 +4,8 @@ import { build } from 'esbuild';
 import Module from 'node:module';
 import fs from 'node:fs';
 const root = process.cwd();
-const fixture = `
-export const state = {tables:{},userId:null,failTable:null}; let serial=0,queue=Promise.resolve();
-const rows=name=>state.tables[name]??=[];
-function query(name, filters=[], max=Infinity, sorts=[], selected=null){
-const fields=row=>new Proxy({}, {get:(_,key)=>({eq:v=>row[key]===v,neq:v=>row[key]!==v,in:v=>v.includes(row[key]),gte:v=>row[key]>=v,lte:v=>row[key]<=v,gt:v=>row[key]>v,desc:()=>[key,-1],asc:()=>[key,1]})});
-const matching=()=>{const result=rows(name).filter(row=>filters.every(f=>f(row)));for(const [key,direction] of [...sorts].reverse())result.sort((a,b)=>String(a[key]).localeCompare(String(b[key]))*direction);return result.slice(0,max);};
-return {where(value){return query(name,[...filters,typeof value==='function'?row=>value(fields(row)):row=>Object.entries(value).every(([k,v])=>row[k]===v)],max,sorts,selected);},orderBy(fn){return query(name,filters,max,[...sorts,fn(fields({}))],selected);},select(...columns){return query(name,filters,max,sorts,columns);},limit(n){return query(name,filters,n,sorts,selected);},async all(){return structuredClone(matching().map(row=>selected?Object.fromEntries(selected.map(k=>[k,row[k]])):row));},async first(){return (await this.all())[0]??null;},async create(values){if(state.failTable===name)throw Error('fixture failure');const time=new Date(Date.now()+ ++serial).toISOString();const row={id:'00000000-0000-4000-8000-'+String(serial).padStart(12,'0'),createdAt:time,updatedAt:time,recordedAt:time,status:name==='ComplianceReport'?'OPEN':name==='ContentConsent'?'RECORDED':'DRAFT',...values};rows(name).push(row);return structuredClone(row);},async delete(){const ids=new Set(matching().map(row=>row.id));state.tables[name]=rows(name).filter(row=>!ids.has(row.id));return ids.size;},async updateAndCount(values){const items=matching();items.forEach(row=>Object.assign(row,values));return items.length;}};
-}
-export const db={orm:{public:new Proxy({}, {get:(_,name)=>query(name)})},raw:{sql(){return {returnsRow(){return this;},build(){return {};}};}},async transaction(fn){let release;const prev=queue;queue=new Promise(r=>release=r);await prev;const snapshot=structuredClone(state.tables);try{return await fn({orm:db.orm,execute:async()=>{}});}catch(e){state.tables=snapshot;throw e;}finally{release();}}};
-export async function getCurrentSession(){return state.userId?{user:{id:state.userId}}:null;}
-`;
+import { fixture } from './fixtures/store-db.mjs';
+
 const result=await build({stdin:{contents:`export * from './src/lib/compliance/service';export * from './src/lib/compliance/validation';export {POST as publicPOST} from './app/api/compliance/reports/route';export {POST as adminPOST,GET as adminGET} from './app/api/admin/compliance/route';export {requirePurchasedVideo,listPurchasedVideos,getPurchasedVideoMedia} from './src/lib/store/purchases';export {saveStoreProduct,archiveStoreProduct,getStoreRemovalPreview} from './src/lib/store/admin';export {DELETE as deleteProduct} from './app/api/store/products/[id]/route';export {getPublishedVideos} from './src/lib/store/public';export {state,db} from 'fixture';`,resolveDir:root},bundle:true,platform:'node',format:'cjs',packages:'external',write:false,plugins:[{name:'isolate',setup(b){b.onResolve({filter:/(?:prisma\/db$|auth\/session$|^\.\/session$|^fixture$|^server-only$)/},args=>({path:args.path==='server-only'?'server-only':'fixture',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='server-only'?'':fixture,loader:'js'}));}}]});
 const m=new Module(root+'/scripts/compliance-tests.memory.cjs');m.filename=root+'/scripts/compliance-tests.memory.cjs';m.paths=Module._nodeModulePaths(root);m._compile(result.outputFiles[0].text,m.filename);const a=m.exports;
 const id=n=>`11111111-1111-4111-8111-${String(n).padStart(12,'0')}`;

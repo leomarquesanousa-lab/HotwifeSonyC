@@ -4,7 +4,7 @@ import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
 import type { StoreProduct } from './types';
-import { assertCommercialPublication, contentFingerprint, ComplianceError } from '@/src/lib/compliance/service';
+import { assertCommercialPublication, completeOwnerPublication, contentFingerprint, ComplianceError } from '@/src/lib/compliance/service';
 
 function serializeProduct(product: StoreProduct): StoreProduct {
   return { ...product, createdAt: new Date(product.createdAt).toISOString(), updatedAt: new Date(product.updatedAt).toISOString(), publishedAt: product.publishedAt ? new Date(product.publishedAt).toISOString() : null };
@@ -20,7 +20,7 @@ export async function requireStoreManagementAccess() {
   if (!member || !['OWNER', 'ADMIN', 'OPERATOR'].includes(member.role)) throw new StoreError('You do not have permission to manage this store.', 403);
   const workspace = await db.orm.public.Workspace.where({ id: member.workspaceId, status: 'ACTIVE' }).first();
   if (!workspace) throw new StoreError('This workspace is unavailable.', 403);
-  return { workspaceId: member.workspaceId, actorId: auth.user.id, canDelete: ['OWNER', 'ADMIN'].includes(member.role) };
+  return { workspaceId: member.workspaceId, actorId: auth.user.id, canDelete: ['OWNER', 'ADMIN'].includes(member.role), canPublishDirectly: member.role === 'OWNER' };
 }
 export async function requireStoreAccess() { return (await requireStoreManagementAccess()).workspaceId; }
 const purchasedDeletionMessage = 'This video has existing purchases and cannot be permanently deleted. You can remove it from sale instead. Existing customers must retain access.';
@@ -89,10 +89,16 @@ export async function listStoreProducts(workspaceId: string) {
   const products = await db.orm.public.VideoProduct.where({ workspaceId }).orderBy(p => p.createdAt.desc()).all();
   return products.map(serializeProduct);
 }
+export async function listStorePerformers(workspaceId: string) {
+  return db.orm.public.Performer.where({ workspaceId, status: 'ACTIVE' }).select('id', 'displayName').all();
+}
 export async function saveStoreProduct(workspaceId: string, value: unknown, id?: string) {
+  const access = await requireStoreManagementAccess();
+  if (access.workspaceId !== workspaceId) throw new StoreError('You do not have permission to manage this store.', 403);
   const result = productInputSchema.safeParse(value);
   if (!result.success) throw new StoreError(result.error.issues[0]?.message ?? 'Invalid product.');
   const submitted = result.data;
+  if (submitted.ownerPublication && !access.canPublishDirectly) throw new StoreError('Direct publication requires OWNER.', 403);
   const saved = await db.transaction(async tx => {
     const lock = db.raw.sql`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${'store-video-products'}, 0))`
       .returnsRow({ locked: 'pg/int4@1' }).build();
@@ -116,16 +122,32 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
       const cover = await tx.orm.public.MediaAsset.where({ id: input.thumbnailMediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'IMAGE' }).first();
       if (!cover || !['image/jpeg', 'image/png', 'image/webp'].includes(cover.contentType)) throw new StoreError('Upload a JPEG, PNG, or WebP cover and wait for it to finish before saving.');
     }
-    const data = input;
+    const unchangedLegacy = existing?.status === 'PUBLISHED' && existing.complianceStatus === 'LEGACY_UNREVIEWED' && contentFingerprint(existing) === contentFingerprint(input) && !submitted.ownerPublication;
+    const direct = access.canPublishDirectly && input.status === 'PUBLISHED' && !unchangedLegacy;
+    const data = direct ? { ...input, status: 'DRAFT' } : input;
     if (input.status === 'PUBLISHED') {
-      try { await assertCommercialPublication(tx, workspaceId, input, existing); }
+      try { if (!direct) await assertCommercialPublication(tx, workspaceId, input, existing); }
       catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
     }
-    if (!id) return tx.orm.public.VideoProduct.create({ ...data, workspaceId, complianceStatus: 'DRAFT' });
+    if (!id) {
+      const product = await tx.orm.public.VideoProduct.create({ ...data, workspaceId, complianceStatus: 'DRAFT' });
+      if (direct) {
+        try { await completeOwnerPublication(tx, workspaceId, access.actorId, product, submitted.ownerPublication); }
+        catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
+        await tx.orm.public.VideoProduct.where({ id: product.id, workspaceId }).updateAndCount({ status: 'PUBLISHED' });
+      }
+      await tx.orm.public.AuditLog.create({ userId: access.actorId, action: 'CONTENT_CREATED', entityType: 'VIDEO_PRODUCT', entityId: product.id, metadata: { workspaceId, status: input.status, source: direct ? 'OWNER_DIRECT_PUBLICATION' : 'STORE_PRODUCT' } });
+      return tx.orm.public.VideoProduct.where({ id: product.id, workspaceId }).first();
+    }
     const changed = existing && contentFingerprint(existing) !== contentFingerprint(input);
-    const blocked = existing && ['SUSPENDED', 'REMOVED'].includes(existing.complianceStatus);
-    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(changed && !blocked ? { complianceStatus: 'DRAFT' } : {}) });
-    if (changed) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount({ fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });
+    const blocked = existing && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(existing.complianceStatus);
+    if (direct) {
+      try { await completeOwnerPublication(tx, workspaceId, access.actorId, { ...existing!, ...input }, submitted.ownerPublication); }
+      catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
+    }
+    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(direct ? { status: 'PUBLISHED' } : {}), ...(changed && !blocked && !direct ? { complianceStatus: 'DRAFT' } : {}) });
+    if (changed && !direct) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount({ fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });
+    await tx.orm.public.AuditLog.create({ userId: access.actorId, action: input.status === 'PUBLISHED' ? 'CONTENT_PUBLISHED' : 'CONTENT_UPDATED', entityType: 'VIDEO_PRODUCT', entityId: id, metadata: { workspaceId, previousStatus: existing!.status, status: input.status, source: direct ? 'OWNER_DIRECT_PUBLICATION' : 'STORE_PRODUCT' } });
     return tx.orm.public.VideoProduct.where({ id, workspaceId }).first();
   });
   if (!saved) throw new StoreError('Unable to save product.', 500);

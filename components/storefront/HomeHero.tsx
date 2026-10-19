@@ -80,18 +80,16 @@ export default function HomeHero({ children, slides = defaultBanners }: { childr
         className={`${styles.slide} ${active === index ? styles.active : ''}`}
         src={slide.src} alt={slide.alt} width={slide.width} height={slide.height}
         aria-hidden={active !== index} loading={index === 0 ? 'eager' : 'lazy'}
-        fetchPriority={index === 0 ? 'high' : 'low'} decoding="async"
-        style={{ '--hero-position': `${slide.focal.x}% ${slide.focal.y}%`, '--hero-mobile-position': `${slide.mobileFocal.x}% ${slide.mobileFocal.y}%` } as React.CSSProperties}/>)}
-      <span className="store-art-label">SONY C / VISUAL STORIES</span>
+        fetchPriority={index === 0 ? 'high' : 'low'} decoding="async"/>)}
+      <button className={`${styles.arrow} ${styles.previous}`} type="button" aria-label="Previous slide" onClick={() => void goTo(active - 1)}><ChevronLeft size={20}/></button>
+      <button className={`${styles.arrow} ${styles.next}`} type="button" aria-label="Next slide" onClick={() => void goTo(active + 1)}><ChevronRight size={20}/></button>
+      <div className={styles.controls} role="group" aria-label="Slideshow controls">
+        {slides.map((slide, index) => <button key={slide.src} type="button" className={styles.dot}
+          aria-label={`Show slide ${index + 1} of ${slides.length}`} aria-current={active === index ? 'true' : undefined}
+          onClick={() => void goTo(index)}><span/></button>)}
+        {!reducedMotion && <button className={styles.pause} type="button" aria-label={paused ? 'Resume slideshow' : 'Pause slideshow'} onClick={() => setPaused(value => !value)}>{paused ? <Play size={13}/> : <Pause size={13}/>}</button>}
+      </div>
     </div>
     {children}
-    <button className={`${styles.arrow} ${styles.previous}`} type="button" aria-label="Previous slide" onClick={() => void goTo(active - 1)}><ChevronLeft size={20}/></button>
-    <button className={`${styles.arrow} ${styles.next}`} type="button" aria-label="Next slide" onClick={() => void goTo(active + 1)}><ChevronRight size={20}/></button>
-    <div className={styles.controls} role="group" aria-label="Slideshow controls">
-      {slides.map((slide, index) => <button key={slide.src} type="button" className={styles.dot}
-        aria-label={`Show slide ${index + 1} of ${slides.length}`} aria-current={active === index ? 'true' : undefined}
-        onClick={() => void goTo(index)}><span/></button>)}
-      {!reducedMotion && <button className={styles.pause} type="button" aria-label={paused ? 'Resume slideshow' : 'Pause slideshow'} onClick={() => setPaused(value => !value)}>{paused ? <Play size={13}/> : <Pause size={13}/>}</button>}
-    </div>
   </section>;
 }

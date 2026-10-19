@@ -1,0 +1,12 @@
+// In-memory transaction/session fixture; never loads .env or connects to a database.
+export const fixture = `
+export const state = {tables:{},userId:null,failTable:null}; let serial=0,queue=Promise.resolve();
+const rows=name=>state.tables[name]??=[];
+function query(name, filters=[], max=Infinity, sorts=[], selected=null){
+const fields=row=>new Proxy({}, {get:(_,key)=>({eq:v=>row[key]===v,neq:v=>row[key]!==v,in:v=>v.includes(row[key]),gte:v=>row[key]>=v,lte:v=>row[key]<=v,gt:v=>row[key]>v,desc:()=>[key,-1],asc:()=>[key,1]})});
+const matching=()=>{const result=rows(name).filter(row=>filters.every(f=>f(row)));for(const [key,direction] of [...sorts].reverse())result.sort((a,b)=>String(a[key]).localeCompare(String(b[key]))*direction);return result.slice(0,max);};
+return {where(value){return query(name,[...filters,typeof value==='function'?row=>value(fields(row)):row=>Object.entries(value).every(([k,v])=>row[k]===v)],max,sorts,selected);},orderBy(fn){return query(name,filters,max,[...sorts,fn(fields({}))],selected);},select(...columns){return query(name,filters,max,sorts,columns);},limit(n){return query(name,filters,n,sorts,selected);},async all(){return structuredClone(matching().map(row=>selected?Object.fromEntries(selected.map(k=>[k,row[k]])):row));},async first(){return (await this.all())[0]??null;},async create(values){if(state.failTable===name)throw Error('fixture failure');const time=new Date(Date.now()+ ++serial).toISOString();const row={id:'00000000-0000-4000-8000-'+String(serial).padStart(12,'0'),createdAt:time,updatedAt:time,recordedAt:time,status:name==='ComplianceReport'?'OPEN':name==='ContentConsent'?'RECORDED':'DRAFT',...values};rows(name).push(row);return structuredClone(row);},async delete(){const ids=new Set(matching().map(row=>row.id));state.tables[name]=rows(name).filter(row=>!ids.has(row.id));return ids.size;},async updateAndCount(values){const items=matching();items.forEach(row=>Object.assign(row,values));return items.length;}};
+}
+export const db={orm:{public:new Proxy({}, {get:(_,name)=>query(name)})},raw:{sql(){return {returnsRow(){return this;},build(){return {};}};}},async transaction(fn){let release;const prev=queue;queue=new Promise(r=>release=r);await prev;const snapshot=structuredClone(state.tables);try{return await fn({orm:db.orm,execute:async()=>{}});}catch(e){state.tables=snapshot;throw e;}finally{release();}}};
+export async function getCurrentSession(){return state.userId?{user:{id:state.userId}}:null;}
+`;

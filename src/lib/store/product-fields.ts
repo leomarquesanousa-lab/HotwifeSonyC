@@ -1,4 +1,16 @@
 import { z } from 'zod';
+import { dateOnly } from '@/src/lib/compliance/validation';
+
+export const ownerPublicationSchema = z.object({
+  recordedOn: dateOnly.refine(value => value <= new Date().toISOString().slice(0, 10), 'The recording date cannot be in the future.'),
+  allPersonsConfirmed: z.literal(true),
+  prohibitedChecked: z.literal(true),
+  copyrightConfirmed: z.literal(true),
+  consentConfirmed: z.literal(true),
+  consents: z.array(z.object({ performerId: z.string().uuid(), evidenceRef: z.string().trim().min(5).max(300) }).strict()).min(1).max(100)
+    .refine(rows => new Set(rows.map(row => row.performerId)).size === rows.length, 'Select each depicted person only once.'),
+}).strict();
+export type OwnerPublication = z.infer<typeof ownerPublicationSchema>;
 
 // Calendar dates in this flow always refer to UTC, never the browser's timezone.
 export function formatPublishDate(timestamp: string | null) {
@@ -29,6 +41,7 @@ export const productInputSchema = z.object({
   category: z.string().trim().min(1).max(80),
   featured: z.boolean(),
   status: z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED']),
+  ownerPublication: ownerPublicationSchema.optional(),
   publishedAt: z.union([
     z.string().refine(value => parsePublishDate(value) !== null, 'Enter a valid date in MM/DD/YYYY format.').transform(value => parsePublishDate(value)!),
     z.iso.datetime({ offset: true }),
@@ -40,9 +53,11 @@ type ExistingFields = {
 };
 
 export function resolveProductFields(input: z.infer<typeof productInputSchema>, existing: ExistingFields | null, now = new Date().toISOString()) {
+  const { ownerPublication, ...fields } = input;
+  void ownerPublication; // Legal evidence is persisted separately, never as a product field.
   const publishedAt = input.publishedAt === undefined ? existing?.publishedAt ?? null : input.publishedAt;
   return {
-    ...input,
+    ...fields,
     mediaAssetId: input.mediaAssetId ?? existing?.mediaAssetId ?? '',
     teaserMediaAssetId: input.teaserMediaAssetId ?? existing?.teaserMediaAssetId ?? null,
     thumbnailMediaAssetId: input.thumbnailMediaAssetId ?? existing?.thumbnailMediaAssetId ?? null,

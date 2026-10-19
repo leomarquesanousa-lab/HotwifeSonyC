@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import ts from 'typescript';
+import { build } from 'esbuild';
 
-const source = await readFile('src/lib/store/product-fields.ts', 'utf8');
-const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
+// Bundle local validation imports too; no database, sessions, or storage are loaded.
+const result = await build({ entryPoints: ['src/lib/store/product-fields.ts'], bundle: true, platform: 'node', format: 'cjs', packages: 'external', write: false });
+const outputText = result.outputFiles[0].text;
 const compiled = { exports: {} };
-new Function('require', 'exports', outputText)(createRequire(import.meta.url), compiled.exports);
+new Function('require', 'module', 'exports', outputText)(createRequire(import.meta.url), compiled, compiled.exports);
 const { productInputSchema, resolveProductFields, formatPublishDate, parsePublishDate } = compiled.exports;
 const ids = [1, 2, 3, 4].map(n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`);
 const existing = { mediaAssetId: ids[0], teaserMediaAssetId: ids[1], thumbnailMediaAssetId: ids[2], publishedAt: '2026-10-06T19:23:00.000Z' };

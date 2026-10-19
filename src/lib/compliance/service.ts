@@ -8,6 +8,7 @@ import { hashAuthToken } from '@/src/lib/auth/tokens';
 import { lockAuthKey, type AuthTransaction } from '@/src/lib/auth/audit';
 import { legalConfiguration } from './config';
 import { adultOn, businessDeadline, reportInput, adminInput } from './validation';
+import type { OwnerPublication } from '@/src/lib/store/product-fields';
 
 export class ComplianceError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -65,6 +66,35 @@ export async function assertCommercialPublication(tx: AuthTransaction, workspace
   const review = await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: existing.id, status: 'APPROVED' }).first();
   if (!review || existing.complianceStatus !== 'APPROVED' || review.fingerprint !== contentFingerprint(input)) throw new ComplianceError('This content or its metadata needs an approved Safety & Compliance review before publication.', 409);
   await assertReviewEvidence(tx, { ...existing, ...input }, review);
+}
+
+// Invoked only after server-side OWNER authorization, under the store lock.
+// Reuses the same evidence checks as a manual review; never verifies identity here.
+export async function completeOwnerPublication(tx: AuthTransaction, workspaceId: string, actorId: string, product: Awaited<ReturnType<typeof productIn>>, evidence?: OwnerPublication) {
+  const member = await tx.orm.public.WorkspaceMember.where({ workspaceId, userId: actorId, role: 'OWNER' }).first();
+  if (!member) throw new ComplianceError('Direct publication requires OWNER.', 403);
+  const existing = await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: product.id }).first();
+  const blocked = ['REJECTED', 'SUSPENDED', 'REMOVED'];
+  if (blocked.includes(product.complianceStatus) || (existing && blocked.includes(existing.status))) throw new ComplianceError('Resolve the existing safety restriction before publishing.', 409);
+  if (!evidence && !existing) throw new ComplianceError('Complete the legal checks in Create Product before publishing.', 409);
+  const review = evidence ? { ...evidence, providerUserId: actorId } : existing!;
+  if (!review.recordedOn || review.recordedOn > new Date().toISOString().slice(0, 10)) throw new ComplianceError('A valid recording date, not in the future, is required.', 409);
+  if (evidence) {
+    for (const consent of evidence.consents) {
+      const performer = await tx.orm.public.Performer.where({ id: consent.performerId, workspaceId, status: 'ACTIVE' }).first();
+      if (!performer) throw new ComplianceError('A depicted person is unavailable.', 409);
+      const latest = await tx.orm.public.ContentConsent.where({ workspaceId, videoProductId: product.id, performerId: consent.performerId }).orderBy(r => r.recordedAt.desc()).first();
+      if (latest && latest.status !== 'RECORDED') throw new ComplianceError('Resolve the disputed or revoked consent before publishing.', 409);
+      const record = await tx.orm.public.ContentConsent.create({ workspaceId, videoProductId: product.id, performerId: consent.performerId, evidenceRef: consent.evidenceRef, mediaFingerprint: mediaFingerprint(product), depiction: true, distribution: true, publication: true, downloads: false, status: 'RECORDED', recordedBy: actorId });
+      await audit(tx, workspaceId, actorId, 'CONSENT_RECORD_UPDATED', 'CONTENT_CONSENT', record.id, { productId: product.id, performerId: consent.performerId, source: 'OWNER_DIRECT_PUBLICATION' });
+    }
+  }
+  await assertReviewEvidence(tx, product, review);
+  const data = { providerUserId: review.providerUserId, recordedOn: review.recordedOn, allPersonsConfirmed: review.allPersonsConfirmed, prohibitedChecked: review.prohibitedChecked, copyrightConfirmed: review.copyrightConfirmed, status: 'APPROVED', fingerprint: contentFingerprint(product), decision: 'Owner publication: mandatory evidence validated in Videos for Sale.', reviewedBy: actorId, reviewedAt: new Date().toISOString() };
+  if (existing) await tx.orm.public.ContentReview.where({ id: existing.id, workspaceId }).updateAndCount(data);
+  else await tx.orm.public.ContentReview.create({ ...data, workspaceId, videoProductId: product.id });
+  await tx.orm.public.VideoProduct.where({ id: product.id, workspaceId }).updateAndCount({ complianceStatus: 'APPROVED' });
+  await audit(tx, workspaceId, actorId, 'CONTENT_APPROVED', 'VIDEO_PRODUCT', product.id, { source: 'OWNER_DIRECT_PUBLICATION', evidenceValidated: true });
 }
 
 function safeContentUrl(value: string) {
