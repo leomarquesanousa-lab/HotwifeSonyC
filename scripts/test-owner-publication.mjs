@@ -44,3 +44,17 @@ reset();a.state.tables.WorkspaceMember.push({userId:customer,workspaceId:workspa
 reset();a.state.failTable='ContentReview';assert.equal((await create(publish)).status,500);assert.equal(a.state.tables.VideoProduct.length,0);assert.equal(a.state.tables.ContentConsent.length,0);
 reset();product=(await (await create(input)).json()).product;Object.assign(a.state.tables.VideoProduct[0],{status:'PUBLISHED',complianceStatus:'LEGACY_UNREVIEWED',publishedAt:'2025-01-01T00:00:00Z'});assert.equal((await update({...input,status:'PUBLISHED'},product.id)).status,200);assert.equal(a.state.tables.ContentReview.length,0);
 console.log('PASS: rejected content cannot be reset through Draft/metadata edits, approved ADMIN flow and unchanged legacy flow preserved, identity expiry rechecked, member role denied, review-write rollback.');
+
+reset(); product=(await (await create(publish)).json()).product;
+const beforeConsent=a.state.tables.ContentConsent.length;
+let context=await a.ownerPublicationContext(a.db,workspace,owner,{...product,title:'Updated title',description:'Updated description'});
+assert.equal(context.needsAttestation,false);assert.deepEqual(context.missingConsentIds,[]);
+response=await update({...input,title:'Updated title',description:'Updated description',status:'PUBLISHED'},product.id);assert.equal(response.status,200);assert.equal(a.state.tables.ContentConsent.length,beforeConsent);
+context=await a.ownerPublicationContext(a.db,workspace,owner,{...a.state.tables.VideoProduct[0],thumbnailMediaAssetId:null});assert.equal(context.needsAttestation,true);
+console.log('PASS: metadata edits reuse approved rights and consent; changed media still requires review.');
+
+reset();product=(await (await create(publish)).json()).product;
+assert.equal((await update({...input,title:'Revised draft',status:'DRAFT'},product.id)).status,200);
+context=await a.ownerPublicationContext(a.db,workspace,owner,a.state.tables.VideoProduct[0]);assert.equal(context.needsAttestation,false);assert.deepEqual(context.missingConsentIds,[]);
+assert.equal((await update({...input,title:'Revised draft',status:'PUBLISHED'},product.id)).status,200);
+console.log('PASS: Save Draft after metadata edits preserves validated review and publishes without repeated intake.');

@@ -35,6 +35,8 @@ import {
   useUploadManager,
 } from "@/src/components/app/UploadManagerProvider";
 
+import MediaPreviewModal from '@/src/components/app/MediaPreviewModal';
+
 type MediaAsset = {
   id: string;
   creatorId: string;
@@ -112,6 +114,7 @@ export default function MediaLibraryPage() {
   const [status, setStatus] = useState('ALL');
   const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
   const [viewer, setViewer] = useState<MediaAsset | null>(null);
+  const closeViewer = useCallback(() => setViewer(null), []);
   const [categoryMedia, setCategoryMedia] = useState<MediaAsset | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -133,7 +136,7 @@ export default function MediaLibraryPage() {
         return [item.id, data.categories ?? []] as const;
       }));
       setAssigned(Object.fromEntries(assignments));
-      const urls = await Promise.all(items.filter(item => item.status === 'UPLOADED').map(async item => {
+      const urls = await Promise.all(items.filter(item => item.mediaType === 'IMAGE' && ['UPLOADED', 'READY'].includes(item.status)).map(async item => {
         const result = await fetch(`/api/media/${item.id}/preview`);
         const data: PreviewResponse = await result.json();
         return [item.id, result.ok && data.success ? data.previewUrl ?? '' : ''] as const;
@@ -176,7 +179,7 @@ export default function MediaLibraryPage() {
       const Tile = viewMode==='GRID' ? MediaTile : MediaListRow;
       return <Tile key={item.id} media={item} previewUrl={previews[item.id]} categories={assigned[item.id] ?? []} isDeleting={deleting===item.id} onPreview={() => setViewer(item)} onManageCategories={() => setCategoryMedia(item)} onRemove={() => void removeMedia(item)}/>;
     })}</div>}
-    {viewer && <MediaViewerModal media={viewer} previewUrl={previews[viewer.id]} onClose={() => setViewer(null)}/>}
+    {viewer && <MediaPreviewModal key={viewer.id} media={viewer} onClose={closeViewer}/>}
     {categoryMedia && <MediaCategoryModal media={categoryMedia} categories={categories} assignedCategories={assigned[categoryMedia.id] ?? []} onClose={() => setCategoryMedia(null)} onCategoriesChanged={loadMedia}/>}
   </main>;
 }
@@ -1182,126 +1185,6 @@ function MediaListRow({
             <Trash2 className="h-3.5 w-3.5" />
           )}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function MediaViewerModal({
-  media,
-  previewUrl,
-  onClose,
-}: {
-  media: MediaAsset;
-  previewUrl?: string;
-  onClose: () => void;
-}) {
-  const t =
-    useTranslations(
-      "mediaLibrary",
-    );
-
-  const locale =
-    useLocale();
-
-  return (
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
-      onMouseDown={(
-        event,
-      ) => {
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
-          onClose();
-        }
-      }}
-    >
-      <div className="w-full max-w-[1100px] overflow-hidden rounded-[22px] border border-white/[0.1] bg-[#090d14] shadow-[0_35px_120px_rgba(0,0,0,0.75)]">
-        <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-4 py-3">
-          <div className="min-w-0">
-            <div className="truncate text-xs font-semibold text-white/85">
-              {
-                media.originalFileName
-              }
-            </div>
-
-            <div className="mt-0.5 text-[9px] text-white/25">
-              {formatBytes(
-                Number(
-                  media.fileSize,
-                ),
-              )}
-              {
-                " · "
-              }
-              {formatDate(
-                media.createdAt,
-                locale,
-              )}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={
-              onClose
-            }
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.025] text-white/40 transition hover:bg-white/[0.06] hover:text-white"
-            aria-label={t(
-              "closeVideoViewer",
-            )}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex min-h-[280px] items-center justify-center bg-black">
-          {previewUrl ? (
-            media.mediaType ===
-            "IMAGE" ? (
-              <img
-                src={
-                  previewUrl
-                }
-                alt={
-                  media.originalFileName
-                }
-                className="max-h-[78vh] max-w-full object-contain"
-              />
-            ) : (
-              <video
-                src={
-                  previewUrl
-                }
-                controls
-                autoPlay
-                playsInline
-                preload="metadata"
-                className="max-h-[78vh] w-full bg-black object-contain"
-              />
-            )
-          ) : (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 text-white/25">
-              <FileVideo2 className="h-10 w-10" />
-
-              <div className="text-xs">
-                Preview unavailable.
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-4 py-3">
-          <StatusBadge
-            status={
-              media.status
-            }
-          />
-            <ProductLinks media={media}/>
-
-        </div>
       </div>
     </div>
   );

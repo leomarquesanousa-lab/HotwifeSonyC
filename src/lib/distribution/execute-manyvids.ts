@@ -264,7 +264,7 @@ export async function executeManyVidsPublication(
             success: false,
             error: "STATE_PERSISTENCE_FAILED",
             message:
-              "Não foi possível registrar o resultado. Revise a publicação antes de tentar novamente.",
+              "Unable to record the result. Review the publication before trying again.",
           },
           { status: 500 },
         );

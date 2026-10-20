@@ -16,19 +16,19 @@ const languages = [
   },
   {
     code: "pt-BR",
-    label: "Português",
+    label: "Portuguese",
   },
   {
     code: "es-ES",
-    label: "Español",
+    label: "Spanish",
   },
   {
     code: "fr-FR",
-    label: "Français",
+    label: "French",
   },
   {
     code: "cs-CZ",
-    label: "Čeština",
+    label: "Czech",
   },
 ];
 

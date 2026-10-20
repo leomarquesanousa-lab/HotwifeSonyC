@@ -72,7 +72,7 @@ export async function assertCommercialPublication(tx: AuthTransaction, workspace
 export async function ownerPublicationContext(tx: AuthTransaction, workspaceId: string, actorId: string, product: ContentFields & { id?: string; complianceStatus?: string }) {
   const original = product.id ? await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first() : null;
   const review = original ? await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: original.id }).first() : null;
-  const reusableReview = review?.status === 'APPROVED' && review.fingerprint === contentFingerprint(product) ? review : null;
+  const reusableReview = review?.status === 'APPROVED' && original && review.fingerprint === contentFingerprint(original) && mediaFingerprint(original) === mediaFingerprint(product) ? review : null;
   const recordedOn = original && mediaFingerprint(original) === mediaFingerprint(product) ? review?.recordedOn ?? null : null;
   const assets = [product.mediaAssetId, product.teaserMediaAssetId, product.thumbnailMediaAssetId].filter((id): id is string => !!id);
   const links = assets.length ? await tx.orm.public.MediaAssetPerformer.where({ workspaceId }).where(row => row.mediaAssetId.in(assets)).all() : [];
@@ -105,6 +105,17 @@ export async function completeOwnerPublication(tx: AuthTransaction, workspaceId:
   if (blocked.includes(product.complianceStatus) || (existing && blocked.includes(existing.status))) throw new ComplianceError('Resolve the existing safety restriction before publishing.', 409);
   const context = await ownerPublicationContext(tx, workspaceId, actorId, product);
   if (context.pending.length) throw new ComplianceError(context.pending.join(' '), 409);
+  if (!evidence && context.needsAttestation) {
+    const missing: string[] = [];
+    if (!context.recordedOn) missing.push('recording date');
+    if (!context.people.length) missing.push('identified depicted participants');
+    for (const personId of context.missingConsentIds) {
+      const person = await tx.orm.public.Performer.where({ workspaceId, id: personId }).first();
+      missing.push('content-specific consent for ' + (person?.displayName ?? personId));
+    }
+    missing.push('approved content review covering distribution rights');
+    throw new ComplianceError('Publication pending: ' + missing.join('; ') + '. Save Draft and resolve these records in Safety & Compliance, then retry Publish.', 409);
+  }
   const changesEvidence = !!evidence?.consents.length || (!!evidence?.recordedOn && evidence.recordedOn !== context.recordedOn);
   if ((context.needsAttestation || changesEvidence) && !evidence?.attest) throw new ComplianceError('Confirm the pending content review before publishing.', 409);
   const review = { providerUserId: actorId, recordedOn: evidence?.recordedOn ?? context.recordedOn,

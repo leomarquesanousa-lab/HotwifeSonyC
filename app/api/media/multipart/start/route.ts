@@ -144,7 +144,7 @@ export async function POST(
 
     const videoMetadata = contentType.startsWith("video/") ? videoMetadataSchema.safeParse(body.videoMetadata) : null;
     if (videoMetadata && !videoMetadata.success) {
-      return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", message: "O vídeo precisa de duração e dimensões válidas antes de iniciar o upload. Atualize a página e selecione o arquivo novamente." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", message: "The video must have a valid duration and dimensions before uploading. Refresh the page and select the file again." }, { status: 400 });
     }
 
     const workspaceMember =

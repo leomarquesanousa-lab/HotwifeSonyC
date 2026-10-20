@@ -260,7 +260,7 @@ export async function POST(
     if (mediaAsset.mediaType === "VIDEO" && selectedAccounts.some((account) => account.platform === "MANYVIDS")) {
       const missingFields = missingVideoMetadataFields(mediaAsset);
       if (missingFields.length) {
-        return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", missingFields, message: "Esta mídia antiga precisa de extração de metadados antes de publicar no ManyVids. Nenhuma distribuição foi criada." }, { status: 409 });
+        return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", missingFields, message: "Metadata must be extracted from this older media file before it can be published to ManyVids. No distribution was created." }, { status: 409 });
       }
     }
 

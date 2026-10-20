@@ -26,7 +26,7 @@ export async function reconcileManyVidsJob(jobId: string, workspaceId: string) {
       status, startedAt: job.startedAt ?? current.find((row) => row.startedAt)?.startedAt ?? null,
       completedAt: status === "COMPLETED" || status === "FAILED" ? new Date().toISOString() : null,
       lastErrorCode: failed ? "PUBLICATION_FAILED" : null,
-      lastErrorMessage: failed ? "Uma ou mais publicações falharam; consulte o estado de cada destino." : null,
+      lastErrorMessage: failed ? "One or more publications failed. Check the status of each destination." : null,
     });
   });
 }

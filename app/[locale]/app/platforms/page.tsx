@@ -303,7 +303,7 @@ const UI = {
     displayName: "Display name",
     addDisplayName: "Add display name",
     editDisplayName: "Edit display name",
-    displayNamePlaceholder: "Example: João Instagram 1",
+    displayNamePlaceholder: "Example: John Instagram 1",
     displayNameHelp: "Use a friendly name so this account is easy to identify when publishing.",
     save: "Save",
     cancel: "Cancel",

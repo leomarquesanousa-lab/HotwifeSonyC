@@ -98,7 +98,7 @@ export const mediaLibraryMessages = {
     createNewCategory:
       "Create new category",
     categoryPlaceholder:
-      "Example: João, Hotel, Promo...",
+      "Example: John, Hotel, Promo...",
     create:
       "Create",
     categoryHelp:

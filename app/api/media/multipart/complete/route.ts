@@ -208,7 +208,7 @@ export async function POST(
     const videoMetadata = mediaAsset.mediaType === "VIDEO"
       ? (storedMetadata.success ? storedMetadata : videoMetadataSchema.safeParse(body.videoMetadata)) : null;
     if (videoMetadata && !videoMetadata.success) {
-      return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", message: "Duração e dimensões estão ausentes. O vídeo não foi marcado como pronto para publicação." }, { status: 400 });
+      return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", message: "Duration and dimensions are missing. The video was not marked as ready to publish." }, { status: 400 });
     }
 
     const bucketName = mediaAsset.bucketName;
@@ -240,7 +240,7 @@ export async function POST(
       const object = await client.send(new HeadObjectCommand({ Bucket: bucketName, Key: mediaAsset.objectKey }));
       try { fileSize = verifiedVideoFileSize(object.ContentLength, mediaAsset.fileSize); }
       catch {
-        return NextResponse.json({ success: false, error: "MEDIA_SIZE_MISMATCH", message: "O tamanho no armazenamento não corresponde ao arquivo original. O vídeo não está pronto para publicação." }, { status: 409 });
+        return NextResponse.json({ success: false, error: "MEDIA_SIZE_MISMATCH", message: "The stored file size does not match the original file. The video is not ready to publish." }, { status: 409 });
       }
     }
 

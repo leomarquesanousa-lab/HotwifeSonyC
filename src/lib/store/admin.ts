@@ -4,7 +4,7 @@ import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
 import type { StoreProduct } from './types';
-import { assertCommercialPublication, completeOwnerPublication, contentFingerprint, ComplianceError } from '@/src/lib/compliance/service';
+import { assertCommercialPublication, completeOwnerPublication, contentFingerprint, mediaFingerprint, ComplianceError } from '@/src/lib/compliance/service';
 
 function serializeProduct(product: StoreProduct): StoreProduct {
   return { ...product, createdAt: new Date(product.createdAt).toISOString(), updatedAt: new Date(product.updatedAt).toISOString(), publishedAt: product.publishedAt ? new Date(product.publishedAt).toISOString() : null };
@@ -141,12 +141,15 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     }
     const changed = existing && contentFingerprint(existing) !== contentFingerprint(input);
     const blocked = existing && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(existing.complianceStatus);
+    const previousReview = changed && !blocked && !direct && existing?.complianceStatus === 'APPROVED' && mediaFingerprint(existing) === mediaFingerprint(input)
+      ? await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id, status: 'APPROVED' }).first() : null;
+    const reuseReview = previousReview && previousReview.fingerprint === contentFingerprint(existing!);
     if (direct) {
       try { await completeOwnerPublication(tx, workspaceId, access.actorId, { ...existing!, ...input }, submitted.ownerPublication); }
       catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
     }
-    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(direct ? { status: 'PUBLISHED' } : {}), ...(changed && !blocked && !direct ? { complianceStatus: 'DRAFT' } : {}) });
-    if (changed && !direct) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount({ fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });
+    await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(direct ? { status: 'PUBLISHED' } : {}), ...(changed && !blocked && !direct && !reuseReview ? { complianceStatus: 'DRAFT' } : {}) });
+    if (changed && !direct) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount(reuseReview ? { fingerprint: contentFingerprint(input) } : { fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });
     await tx.orm.public.AuditLog.create({ userId: access.actorId, action: input.status === 'PUBLISHED' ? 'CONTENT_PUBLISHED' : 'CONTENT_UPDATED', entityType: 'VIDEO_PRODUCT', entityId: id, metadata: { workspaceId, previousStatus: existing!.status, status: input.status, source: direct ? 'OWNER_DIRECT_PUBLICATION' : 'STORE_PRODUCT' } });
     return tx.orm.public.VideoProduct.where({ id, workspaceId }).first();
   });

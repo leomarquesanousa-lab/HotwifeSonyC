@@ -6,10 +6,10 @@
     "save": "Save",
     "loading": "Loading...",
     "english": "English",
-    "portuguese": "Português",
-    "spanish": "Español",
-    "french": "Français",
-    "czech": "Čeština"
+    "portuguese": "Portuguese",
+    "spanish": "Spanish",
+    "french": "French",
+    "czech": "Czech"
   },
   "appShell": {
     "dashboard": "Dashboard",
