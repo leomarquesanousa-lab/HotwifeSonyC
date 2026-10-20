@@ -1,6 +1,6 @@
-﻿import { listStoreProducts, parseStoreBody, requireStoreAccess, saveStoreProduct, storeFailure } from '@/src/lib/store/admin';
+﻿import { listStoreProducts, listStorePerformers, parseStoreBody, requireStoreAccess, saveStoreProduct, storeFailure } from '@/src/lib/store/admin';
 export async function GET() {
-  try { const workspaceId = await requireStoreAccess(); return Response.json({ products: await listStoreProducts(workspaceId) }, { headers: { 'Cache-Control': 'no-store' } }); }
+  try { const workspaceId = await requireStoreAccess(); return Response.json({ products: await listStoreProducts(workspaceId), creators: await listStorePerformers(workspaceId) }, { headers: { 'Cache-Control': 'no-store' } }); }
   catch (error) { return storeFailure(error); }
 }
 export async function POST(request: Request) {

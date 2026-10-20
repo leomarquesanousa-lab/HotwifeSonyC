@@ -3,15 +3,15 @@ import Link from 'next/link';
 import WatchFullVideo from '@/components/storefront/WatchFullVideo';
 import DeleteVideoDialog from './DeleteVideoDialog';
 import PermanentlyDeleteVideo from './PermanentlyDeleteVideo';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Plus, Pencil, Archive, Check, X, Store, Trash2 } from 'lucide-react';
 import { formatPublishDate, parsePublishDate } from '@/src/lib/store/product-fields';
 import { priceLabel } from '@/components/storefront/data';
 import { useUploadManager } from '@/src/components/app/UploadManagerProvider';
 import type { StoreMedia, StoreProduct } from '@/src/lib/store/types';
 
-type Form = { id?: string; mediaAssetId: string; teaserMediaAssetId: string; thumbnailMediaAssetId: string; title: string; slug: string; description: string; price: string; category: string; featured: boolean; status: string; publishedAt: string };
-const emptyForm: Form = { mediaAssetId: '', teaserMediaAssetId: '', thumbnailMediaAssetId: '', title: '', slug: '', description: '', price: '', category: '', featured: false, status: 'DRAFT', publishedAt: '' };
+type Form = { creatorId: string; id?: string; mediaAssetId: string; teaserMediaAssetId: string; thumbnailMediaAssetId: string; title: string; slug: string; description: string; price: string; category: string; featured: boolean; status: string; publishedAt: string };
+const emptyForm: Form = { creatorId: '', mediaAssetId: '', teaserMediaAssetId: '', thumbnailMediaAssetId: '', title: '', slug: '', description: '', price: '', category: '', featured: false, status: 'DRAFT', publishedAt: '' };
 function slugFromTitle(title: string) {
   return title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
@@ -38,7 +38,20 @@ function ProductUpload({ label, accept, fileName, disabled, progress, onFile, on
 function productPayload(product: StoreProduct) {
   return { title: product.title, slug: product.slug, description: product.description, priceCents: product.priceCents, currency: 'USD', category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt };
 }
-export default function StoreVideos({ initialProducts, media: initialMedia, canDelete = false }: { initialProducts: StoreProduct[]; media: StoreMedia[]; canDelete?: boolean; }) {
+export default function StoreVideos({ initialProducts, media: initialMedia, canDelete = false, creators: initialCreators = [] }: { creators?: { id: string; displayName: string }[]; initialProducts: StoreProduct[]; media: StoreMedia[]; canDelete?: boolean; }) {
+  const [creators, setCreators] = useState(initialCreators);
+  useEffect(() => {
+    const controller = new AbortController();
+    const refresh = async () => {
+      try {
+        const response = await fetch('/api/store/products', { cache: 'no-store', signal: controller.signal });
+        const data = await response.json();
+        if (response.ok && Array.isArray(data.creators) && !controller.signal.aborted) setCreators(data.creators);
+      } catch { /* Existing profiles remain available; a full reload can retry. */ }
+    };
+    window.addEventListener('focus', refresh);
+    return () => { controller.abort(); window.removeEventListener('focus', refresh); };
+  }, []);
   const [products,setProducts] = useState(initialProducts);
   const [listFilter, setListFilter] = useState('ACTIVE');
   const visibleProducts = products.filter(product => listFilter === 'ALL' || (listFilter === 'ARCHIVED' ? product.status === 'ARCHIVED' : product.status !== 'ARCHIVED'));
@@ -73,7 +86,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
   function edit(product: StoreProduct) {
     setError('');setNotice('');
     setSlugEdited(true);
-    setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: formatPublishDate(product.publishedAt) });
+    setForm({ creatorId: product.creatorId ?? '', id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status, publishedAt: formatPublishDate(product.publishedAt) });
   }
   async function save(payload: Record<string, unknown>, id?: string) {
     setBusy(true);setError('');setNotice('');
@@ -126,7 +139,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
       ? {} : { publishedAt: form.publishedAt || null };
     const draft = submitter instanceof HTMLButtonElement && submitter.value === 'DRAFT';
     const status = publish ? 'PUBLISHED' : draft ? 'DRAFT' : form.status;
-    await save({ ...mediaChanges, ...dateChanges, title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status },form.id);
+    await save({ creatorId: form.creatorId || null, ...mediaChanges, ...dateChanges, title: form.title, slug: form.slug, description: form.description, priceCents, currency: 'USD', category: form.category, featured: form.featured, status },form.id);
   }
   return <div className="mx-auto max-w-7xl p-4 sm:p-8"><header className="mb-7 flex flex-wrap items-start justify-between gap-4"><div><div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300"><Store size={16}/> Store</div><h1 className="text-2xl font-semibold">Videos for Sale</h1><p className="mt-2 text-sm text-white/45">Create and publish videos with direct uploads. Your files are automatically added to the Media Library.</p></div><button className={`${buttonClass} bg-violet-500/20 text-violet-200`} disabled={locked} onClick={() => {setSlugEdited(false);setForm({...emptyForm});setError('');setNotice('');}}><Plus size={17}/> Create Product</button></header>
     {error && <p role="alert" className="mb-5 rounded-lg border border-rose-400/20 bg-rose-400/10 p-4 text-sm text-rose-200">{error}</p>}{notice && <p role="status" className="mb-5 text-sm text-emerald-300">{notice}</p>}
@@ -139,6 +152,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
       }
     }} className="mb-8 rounded-xl border border-white/10 bg-[#0f1522] p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="text-lg font-medium">{form.id ? 'Edit Product' : 'Create Product'}</h2><button type="button" aria-label="Close product editor" disabled={locked} className={buttonClass} onClick={() => setForm(null)}><X size={17}/></button></div><fieldset disabled={locked} className="grid min-w-0 gap-5 sm:grid-cols-2">
       <h3 className="text-sm font-medium sm:col-span-2">Information</h3>
+      <label className="grid gap-2 text-xs text-white/70">Creator<select aria-label="Creator" className={fieldClass} required={creators.length > 0} value={form.creatorId} onChange={event => update('creatorId',event.target.value)}><option value="">Select a creator</option>{form.creatorId && !creators.some(creator => creator.id === form.creatorId) && <option value={form.creatorId}>Unavailable creator</option>}{creators.map(creator => <option key={creator.id} value={creator.id}>{creator.displayName}</option>)}</select><Link href="/app/performers" target="_blank" rel="noopener noreferrer" className="text-violet-300">Manage creator profiles</Link>{!creators.length && <span>No creator profiles are available. Register the real creator profile, then reload this page.</span>}</label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Title<input className={fieldClass} required maxLength={160} value={form.title} onChange={event => updateTitle(event.target.value)}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70 sm:col-span-2">Description<textarea className={fieldClass} required rows={4} maxLength={5000} value={form.description} onChange={event => update('description',event.target.value)}/></label>
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Price (USD)<input className={fieldClass} inputMode="decimal" placeholder="19.99" required value={form.price} onChange={event => update('price',event.target.value)}/></label>

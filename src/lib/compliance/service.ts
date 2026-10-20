@@ -1,3 +1,4 @@
+import { withProductCreator } from '@/src/lib/store/product-creator';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { db } from '@/src/prisma/db';
@@ -18,17 +19,17 @@ export async function requireComplianceAccess() {
   if (!['OWNER', 'ADMIN'].includes(auth.membership.role)) throw new ComplianceError('Compliance access requires OWNER or ADMIN.', 403);
   return auth;
 }
-type ContentFields = { mediaAssetId: string; teaserMediaAssetId: string | null; thumbnailMediaAssetId: string | null; title: string; slug: string; description: string; category: string };
+type ContentFields = { creatorId?: string | null; mediaAssetId: string; teaserMediaAssetId: string | null; thumbnailMediaAssetId: string | null; title: string; slug: string; description: string; category: string };
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const mediaFingerprint = (p: ContentFields) => hash([p.mediaAssetId, p.teaserMediaAssetId, p.thumbnailMediaAssetId]);
-export const contentFingerprint = (p: ContentFields) => hash([mediaFingerprint(p), p.title, p.slug, p.description, p.category]);
+export const contentFingerprint = (p: ContentFields) => { const fields = [mediaFingerprint(p), p.title, p.slug, p.description, p.category]; return hash(p.creatorId ? [...fields, p.creatorId] : fields); };
 async function audit(tx: AuthTransaction, workspaceId: string, actorId: string | null, action: string, objectType: string, objectId: string, metadata: Record<string, string | boolean | null> = {}) {
   await tx.orm.public.AuditLog.create({ userId: actorId, action, entityType: objectType, entityId: objectId, metadata: { workspaceId, ...metadata } });
 }
 async function productIn(tx: AuthTransaction, workspaceId: string, id: string) {
   const product = await tx.orm.public.VideoProduct.where({ id, workspaceId }).first();
   if (!product) throw new ComplianceError('Content not found.', 404);
-  return product;
+  return withProductCreator(tx, product);
 }
 async function latestIdentity(tx: Pick<AuthTransaction, 'orm'>, workspaceId: string, subjectType: string, subjectId: string) {
   return tx.orm.public.ComplianceIdentity.where({ workspaceId, subjectType, subjectId }).orderBy(r => r.createdAt.desc()).first();
@@ -58,7 +59,7 @@ async function assertReviewEvidence(tx: AuthTransaction, product: Awaited<Return
   const consents = await tx.orm.public.ContentConsent.where({ workspaceId: product.workspaceId, videoProductId: product.id }).orderBy(r => r.recordedAt.desc()).all();
   const latest = new Map<string, typeof consents[number]>();
   for (const consent of consents) if (!latest.has(consent.performerId)) latest.set(consent.performerId, consent);
-  const people = new Set([...links.map(l => l.performerId), ...latest.keys()]);
+  const people = new Set([...links.map(l => l.performerId), ...latest.keys(), ...(product.creatorId ? [product.creatorId] : [])]);
   if (!people.size) throw new ComplianceError('Identify every depicted person, including the creator, and record consent before approval.', 409);
   for (const personId of people) {
     const performer = await tx.orm.public.Performer.where({ id: personId, workspaceId: product.workspaceId, status: 'ACTIVE' }).first();
@@ -77,22 +78,23 @@ export async function assertCommercialPublication(tx: AuthTransaction, workspace
   const review = await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: existing.id }).first();
   if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(existing.complianceStatus) || (review && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(review.status))) throw new ComplianceError('Publication blocked by the existing safety restriction. Resolve it in Safety & Compliance.', 409);
   if (!review || review.status !== 'APPROVED' || existing.complianceStatus !== 'APPROVED') throw new ComplianceError('Publication pending: no approved content review is on file. Save Draft and complete the content review in Safety & Compliance.', 409);
-  if (review.fingerprint !== contentFingerprint(existing) || mediaFingerprint(existing) !== mediaFingerprint(input)) throw new ComplianceError('Publication pending: the selected media do not match the approved content review. Review these media in Safety & Compliance.', 409);
+  if (review.fingerprint !== contentFingerprint(existing) || (mediaFingerprint(existing) !== mediaFingerprint(input) || (existing.creatorId ?? null) !== (input.creatorId ?? null))) throw new ComplianceError('Publication pending: the selected media do not match the approved content review. Review these media in Safety & Compliance.', 409);
   await assertReviewEvidence(tx, { ...existing, ...input }, review);
 }
 
 // Existing registries remain the source of truth; never infer consent for a different upload.
 export async function ownerPublicationContext(tx: AuthTransaction, workspaceId: string, actorId: string, product: ContentFields & { id?: string; complianceStatus?: string }) {
-  const original = product.id ? await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first() : null;
+  const stored = product.id ? await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first() : null;
+  const original = stored ? await withProductCreator(tx, stored) : null;
   const review = original ? await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: original.id }).first() : null;
-  const reusableReview = review?.status === 'APPROVED' && original && review.fingerprint === contentFingerprint(original) && mediaFingerprint(original) === mediaFingerprint(product) ? review : null;
+  const reusableReview = review?.status === 'APPROVED' && original && review.fingerprint === contentFingerprint(original) && mediaFingerprint(original) === mediaFingerprint(product) && original.creatorId === (product.creatorId ?? null) ? review : null;
   const recordedOn = original && mediaFingerprint(original) === mediaFingerprint(product) ? review?.recordedOn ?? null : null;
   const assets = [product.mediaAssetId, product.teaserMediaAssetId, product.thumbnailMediaAssetId].filter((id): id is string => !!id);
   const links = assets.length ? await tx.orm.public.MediaAssetPerformer.where({ workspaceId }).where(row => row.mediaAssetId.in(assets)).all() : [];
   const records = original ? await tx.orm.public.ContentConsent.where({ workspaceId, videoProductId: original.id }).orderBy(row => row.recordedAt.desc()).all() : [];
   const latest = new Map<string, typeof records[number]>();
   for (const row of records) if (!latest.has(row.performerId)) latest.set(row.performerId, row);
-  const people = [...new Set([...links.map(row => row.performerId), ...latest.keys()])];
+  const people = [...new Set([...links.map(row => row.performerId), ...latest.keys(), ...(product.creatorId ? [product.creatorId] : [])])];
   const missingConsentIds = people.filter(id => { const row = latest.get(id); return !row || row.status !== 'RECORDED' || !row.evidenceRef || !row.depiction || !row.distribution || !row.publication || row.downloads || row.mediaFingerprint !== mediaFingerprint(product); });
   const pending: string[] = [];
   if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus ?? '') || (review && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(review.status))) pending.push('Resolve the existing safety restriction in Safety & Compliance.');
@@ -118,7 +120,8 @@ export async function completeOwnerPublication(tx: AuthTransaction, workspaceId:
   if (blocked.includes(product.complianceStatus) || (existing && blocked.includes(existing.status))) throw new ComplianceError('Resolve the existing safety restriction before publishing.', 409);
   // A valid content review belongs to its actual provider, not whoever clicks Publish.
   // Metadata edits do not replace evidence, reviewer decisions or content-specific consent.
-  const original = await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first();
+  const stored = await tx.orm.public.VideoProduct.where({ workspaceId, id: product.id }).first();
+  const original = stored ? await withProductCreator(tx, stored) : null;
   if (!evidence && existing?.status === 'APPROVED' && original?.complianceStatus === 'APPROVED' && existing.fingerprint === contentFingerprint(original) && mediaFingerprint(original) === mediaFingerprint(product)) {
     await assertReviewEvidence(tx, product, existing);
     if (existing.fingerprint !== contentFingerprint(product)) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: product.id }).updateAndCount({ fingerprint: contentFingerprint(product) });
@@ -269,6 +272,7 @@ export async function complianceAction(value: unknown) {
       const personId = await creatorLink(tx, workspaceId, ownerId);
       if (!personId) throw new ComplianceError('Complete Creator Verification before reviewing a video.', 409);
       const product = await productIn(tx, workspaceId, input.productId);
+      if (product.creatorId && product.creatorId !== personId) throw new ComplianceError('The selected product creator is not the linked creator. Use the additional-people review for this profile.', 409);
       const oldReview = await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: product.id }).first();
       if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus) || (oldReview && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(oldReview.status))) throw new ComplianceError('Resolve the safety restriction using the advanced review before approving this video.', 409);
       if (input.recordedOn > new Date().toISOString().slice(0, 10)) throw new ComplianceError('The recording date cannot be in the future.');
@@ -388,7 +392,7 @@ export async function complianceDashboard(status?: string) {
   creator.missing = [...new Set(creator.missing)];
   const config = legalConfiguration();
   const pending = Object.entries(config).filter(([key, value]) => !['processor', 'billingDescriptor'].includes(key) && value === null).map(([key]) => key);
-  return { creator, currentUserId: auth.user.id, asOf: new Date().toISOString(), reports, products, performers, members, identities, reviews, consents, notes, pending, events: events.filter(e => e.metadata && typeof e.metadata === 'object' && 'workspaceId' in e.metadata && e.metadata.workspaceId === workspaceId).map(({ id, action, entityType, entityId, createdAt, userId, metadata }) => ({ id, action, entityType, entityId, createdAt, userId, metadata })) };
+  return { creator, currentUserId: auth.user.id, asOf: new Date().toISOString(), reports, products: await Promise.all(products.map(product => withProductCreator(db, { ...product, workspaceId }))), performers, members, identities, reviews, consents, notes, pending, events: events.filter(e => e.metadata && typeof e.metadata === 'object' && 'workspaceId' in e.metadata && e.metadata.workspaceId === workspaceId).map(({ id, action, entityType, entityId, createdAt, userId, metadata }) => ({ id, action, entityType, entityId, createdAt, userId, metadata })) };
 }
 export type ComplianceDashboard = Awaited<ReturnType<typeof complianceDashboard>>;
 export function complianceFailure(error: unknown) {
