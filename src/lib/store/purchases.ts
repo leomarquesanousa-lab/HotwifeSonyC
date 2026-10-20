@@ -1,7 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import { db } from '@/src/prisma/db';
-import { getAdministrativeMembership } from '@/src/lib/auth/admin-access';
+import { hasVideoPreviewAccess } from '@/src/lib/auth/video-preview-access';
 import { getCurrentSession } from '@/src/lib/auth/session';
 
 export class PurchaseAccessError extends Error {
@@ -23,18 +23,22 @@ export async function listPurchasedVideos() {
 export async function requirePurchasedVideo(productId: string) {
   const user = await requireCustomer();
   if (!z.string().uuid().safeParse(productId).success) throw new PurchaseAccessError('Video access denied.', 403);
-  const administrativeAccess = await getAdministrativeMembership(user.id);
-  if (!administrativeAccess) {
-    const purchase = await db.orm.public.Purchase.where({ userId: user.id, videoProductId: productId, status: 'PAID' }).first();
-    if (!purchase) throw new PurchaseAccessError('You have not purchased this video.', 403);
-  }
   const product = await db.orm.public.VideoProduct.where({ id: productId }).first();
   if (!product) throw new PurchaseAccessError('Video unavailable.', 404);
+  const administrativeAccess = await hasVideoPreviewAccess(user.id, product.workspaceId);
+  if (!administrativeAccess) {
+    const purchase = await db.orm.public.Purchase.where({ userId: user.id, videoProductId: productId, status: 'PAID' }).first();
+    if (!purchase) throw new PurchaseAccessError('This Video Is Locked. Purchase this video to unlock the full content.', 403);
+  }
   // Safety takedowns block new playback sessions without changing admin/Purchase authorization.
   if (['SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) throw new PurchaseAccessError('Video unavailable pending a safety review.', 403);
   const workspace = await db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first();
   if (!workspace) throw new PurchaseAccessError('Video unavailable.', 404);
   return product;
+}
+export async function canWatchVideo(productId: string) {
+  try { await requirePurchasedVideo(productId); return true; }
+  catch (error) { if (error instanceof PurchaseAccessError) return false; throw error; }
 }
 export async function getPurchasedVideoMedia(productId: string, kind: 'full' | 'cover') {
   const product = await requirePurchasedVideo(productId);

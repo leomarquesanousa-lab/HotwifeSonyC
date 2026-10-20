@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const input = adminInput.safeParse(await parseAuthBody(request, z.unknown()));
     if (!input.success) {
       const field = String(input.error.issues[0]?.path[0] ?? 'details');
-      const names: Record<string, string> = { dateOfBirth: 'Date of birth', evidenceRef: 'Protected identity document', expiresAt: 'Document validity', reviewed: 'Actual identity review confirmation', samePerson: 'Owner-to-creator link confirmation', displayName: 'Creator name', recordedOn: 'Recording date' };
+      const names: Record<string, string> = { dateOfBirth: 'Date of birth', evidenceRef: 'Protected identity document', expiresAt: 'Document validity', reviewed: 'Review confirmation', samePerson: 'Owner-to-creator link confirmation', displayName: 'Creator name', recordedOn: 'Recording date' };
       throw new ComplianceError(`Check ${names[field] ?? 'the submitted details'}. The required value is missing or invalid.`);
     }
     return Response.json(await complianceAction(input.data), { headers: { 'Cache-Control': 'private, no-store', Vary: 'Cookie' } });

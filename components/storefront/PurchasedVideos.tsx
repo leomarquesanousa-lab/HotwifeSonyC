@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import WatchFullVideo from './WatchFullVideo';
 
-export function PurchasedVideo({ video, watchLabel = 'Watch' }: { video: { id: string; title: string }; watchLabel?: string }) {
+export function PurchasedVideo({ video, watchLabel = 'Watch Video' }: { video: { id: string; title: string }; watchLabel?: string }) {
   const [coverFailed, setCoverFailed] = useState(false);
   return <article className="store-purchase">
     <img src={coverFailed ? '/storefront/scene-1.svg' : `/api/account/videos/${encodeURIComponent(video.id)}/cover`} alt={`${video.title} cover`} width={640} height={360} style={{ width: '100%', height: 'auto', objectFit: 'cover' }} onError={() => setCoverFailed(true)}/>

@@ -11,7 +11,13 @@ export default function VideoModal({ title, url, busy, error, onClose, onPlaybac
   triggerRef: RefObject<HTMLButtonElement | null>;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const titleId = useId();
+
+  useEffect(() => {
+    const player = videoRef.current;
+    return () => { if (player) { player.pause(); player.removeAttribute('src'); player.load(); } };
+  }, [url]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -50,7 +56,7 @@ export default function VideoModal({ title, url, busy, error, onClose, onPlaybac
     <div className={styles.content}>
       {busy && <p role="status">Loading video...</p>}
       {error && <p role="alert">{error}</p>}
-      {url && <video key={url} className={styles.video} src={url} controls autoPlay controlsList="nodownload" disablePictureInPicture preload="metadata" aria-label={`Watch ${title}`} onError={onPlaybackError}/>}
+      {url && <video ref={videoRef} key={url} className={styles.video} src={url} controls autoPlay controlsList="nodownload" disablePictureInPicture preload="metadata" aria-label={`Watch ${title}`} onError={onPlaybackError}/>}
     </div>
   </dialog>, document.body);
 }

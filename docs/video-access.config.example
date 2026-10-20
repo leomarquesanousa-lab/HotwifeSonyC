@@ -1,0 +1,10 @@
+# Production: use the public HTTPS origin, never the internal proxy URL.
+APP_URL=https://hotwifesonyc.com
+
+# Optional comma-separated WorkspaceMember IDs explicitly allowed to preview as OPERATOR.
+# Grants are scoped to that membership's workspace, not every workspace of the user.
+# Empty denies operator preview. OWNER and ADMIN require no additional grant.
+OPERATOR_PREVIEW_MEMBERSHIP_IDS=
+
+# This is documentation only. Configure deployment variables through the host.
+# Checkout is unavailable; no payment or access entitlement is created by this config.

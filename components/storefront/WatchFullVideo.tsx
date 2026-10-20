@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import VideoModal from './VideoModal';
 
-export default function WatchFullVideo({ video, label = 'Watch', className = 'store-button' }: {
+export default function WatchFullVideo({ video, label = 'Watch Video', className = 'store-button' }: {
   video: { id: string; title: string }; label?: string; className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -12,6 +12,7 @@ export default function WatchFullVideo({ video, label = 'Watch', className = 'st
   const [error, setError] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
   const close = useCallback(() => {
     requestRef.current?.abort();
     setOpen(false); setUrl(null); setError(''); setBusy(false);
@@ -23,7 +24,7 @@ export default function WatchFullVideo({ video, label = 'Watch', className = 'st
     requestRef.current = request;
     setOpen(true); setBusy(true); setError(''); setUrl(null);
     try {
-      const response = await fetch(`/api/account/videos/${encodeURIComponent(video.id)}/watch`, { method: 'POST', cache: 'no-store', signal: request.signal });
+      const response = await fetch(`/api/account/videos/${encodeURIComponent(video.id)}/watch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: request.signal });
       const data = await response.json();
       if (!response.ok || typeof data.url !== 'string') throw new Error(data.error || 'Unable to play this video.');
       if (!request.signal.aborted) setUrl(data.url);

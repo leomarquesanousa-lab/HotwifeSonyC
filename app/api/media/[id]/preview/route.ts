@@ -3,11 +3,13 @@ import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
 import { AuthError } from '@/src/lib/auth/request';
 import { getR2ObjectDownloadUrl } from '@/src/lib/storage/r2';
 import { db } from '@/src/prisma/db';
+import { canPreviewVideo } from '@/src/lib/auth/video-preview-access';
 
 const headers = { 'Cache-Control': 'private, no-store', Vary: 'Cookie' };
 export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { workspace } = await requireAdministrativeAccess();
+    const { workspace, membership } = await requireAdministrativeAccess();
+    if (!canPreviewVideo(membership)) throw new AuthError('PREVIEW_ACCESS_REQUIRED', 403);
     const { id } = await context.params;
     const media = await db.orm.public.MediaAsset.where({ id: id.trim(), workspaceId: workspace.id }).first();
     if (!media) return NextResponse.json({ success: false, error: 'MEDIA_NOT_FOUND' }, { status: 404, headers });

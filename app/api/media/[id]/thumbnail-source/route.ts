@@ -14,6 +14,7 @@ import {
 import {
   db,
 } from "@/src/prisma/db";
+import { canPreviewVideo } from '@/src/lib/auth/video-preview-access';
 
 export const runtime =
   "nodejs";
@@ -65,10 +66,11 @@ export async function GET(
       );
     }
 
-    const {
-      id: mediaId,
-    } =
-      await context.params;
+    if (!canPreviewVideo(membership) || !await db.orm.public.Workspace.where({ id: membership.workspaceId, status: 'ACTIVE' }).first()) {
+      return NextResponse.json({ success: false, error: 'PREVIEW_ACCESS_REQUIRED' }, { status: 403, headers: { 'Cache-Control': 'private, no-store', Vary: 'Cookie' } });
+    }
+
+    const { id: mediaId } = await context.params;
 
     const media =
       await db.orm.public.MediaAsset
