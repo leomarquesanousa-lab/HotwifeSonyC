@@ -96,7 +96,10 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
   const access = await requireStoreManagementAccess();
   if (access.workspaceId !== workspaceId) throw new StoreError('You do not have permission to manage this store.', 403);
   const result = productInputSchema.safeParse(value);
-  if (!result.success) throw new StoreError(result.error.issues[0]?.message ?? 'Invalid product.');
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    throw new StoreError(issue ? `${issue.path.join('.') || 'Product'}: ${issue.message}` : 'Invalid product.');
+  }
   const submitted = result.data;
   if (submitted.ownerPublication && !access.canPublishDirectly) throw new StoreError('Direct publication requires OWNER.', 403);
   const saved = await db.transaction(async tx => {

@@ -1,5 +1,5 @@
 'use client';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { ComplianceDashboard } from '@/src/lib/compliance/service';
 import { reportStatuses, reviewStatuses } from '@/src/lib/compliance/constants';
@@ -14,6 +14,13 @@ export default function ComplianceAdmin({ initial }: { initial: ComplianceDashbo
   const [data, setData] = useState(initial);
   const [status, setStatus] = useState('');
   const [tab, setTab] = useState('Reports');
+  const [identitySubjectId, setIdentitySubjectId] = useState(initial.performers[0]?.id ?? '');
+  useEffect(() => {
+    const openIdentity = () => { if (window.location.hash === '#creator-identity') setTab('Age & identity'); };
+    openIdentity();
+    window.addEventListener('hashchange', openIdentity);
+    return () => window.removeEventListener('hashchange', openIdentity);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -41,7 +48,7 @@ export default function ComplianceAdmin({ initial }: { initial: ComplianceDashbo
   }
   const productOptions = <><option value="">Select content</option>{data.products.map(p => <option value={p.id} key={p.id}>{p.title} / {p.complianceStatus}</option>)}</>;
   const personOptions = <><option value="">Select person</option>{data.performers.map(p => <option value={p.id} key={p.id}>{p.displayName}</option>)}</>;
-  const memberOptions = <><option value="">Select provider</option>{data.members.map(m => <option value={m.userId} key={m.userId}>{m.userId} ({m.role})</option>)}</>;
+  const memberOptions = <><option value="">Select provider</option>{data.members.map(m => <option value={m.userId} key={m.userId}>{m.role} account</option>)}</>;
   const submitButton = <button className={button} disabled={busy}>Record action</button>;
   return <main className="mx-auto max-w-7xl space-y-6 p-5 sm:p-8" lang="en">
     <header><p className="text-xs uppercase tracking-widest text-violet-300">Safety administration</p><h1 className="mt-2 text-3xl font-semibold">Compliance / Reports</h1><p className="mt-3 text-sm leading-6 text-white/50">OWNER / ADMIN only. Inspect actual evidence before verification or approval. Do not paste raw IDs, signed storage URLs or card information into notes.</p></header>
@@ -59,15 +66,16 @@ export default function ComplianceAdmin({ initial }: { initial: ComplianceDashbo
         </div></details>)}
     </section>}
     {tab === 'Age & identity' && <section className="grid gap-5 lg:grid-cols-2">
-      <form className={panel + ' grid gap-4'} onSubmit={event => void submit(event,'identity')}><h2 className="text-lg">Record an actual identity review</h2>
-        <Select name="subjectType" title="Subject type"><option value="USER">Content provider account</option><option value="PERFORMER">Depicted person</option></Select>
-        <label>Subject ID<input name="subjectId" className={field} required placeholder="Copy the ID from the list alongside"/></label><label>Date of birth (protected)<input type="date" name="dateOfBirth" className={field} required/></label>
+      <form id="creator-identity" className={panel + ' grid gap-4'} onSubmit={event => void submit(event,'identity')}><h2 className="text-lg">Additional-person identity review</h2>
+        <p className="text-sm text-white/60">Use Creator Verification for the owner. Review additional people here only when they appear in content. Uploaded documents alone do not establish a verified identity.</p>
+        <input type="hidden" name="subjectType" value="PERFORMER"/>
+        <label className="grid gap-2 text-sm">Additional person<select aria-label="Additional person" name="subjectId" className={field} required value={identitySubjectId} onChange={event => setIdentitySubjectId(event.target.value)}><option value="">Select a person</option>{data.performers.map(person => <option key={person.id} value={person.id}>{person.displayName}</option>)}</select></label><label>Date of birth (protected)<input type="date" name="dateOfBirth" className={field} required/></label>
         <label>Protected evidence reference<input name="evidenceRef" className={field} required minLength={5} maxLength={300} placeholder="Protected vault, existing document or verification case reference"/></label><label>Document / verification expiry (if applicable)<input type="date" name="expiresAt" className={field}/></label>
         <Select name="status" title="Decision">{['NOT_VERIFIED','VERIFIED','REJECTED'].map(s=><option key={s}>{s}</option>)}</Select>
         <Check name="attest">I performed the review. For a verified result, I inspected government-issued age/identity evidence, matched the person to it and can retrieve the protected evidence.</Check>{submitButton}
       </form>
       <div className={panel}><h2 className="text-lg">Subjects and current status</h2><Link href="/app/performers" className="mt-3 inline-block text-sm text-violet-200 underline">Manage depicted-person profiles</Link>
-        {[...data.members.map(m=>({type:'USER',id:m.userId,label:`Provider ${m.role}`})),...data.performers.map(p=>({type:'PERFORMER',id:p.id,label:p.displayName}))].map(subject => { const identity=data.identities.find(i=>i.subjectType===subject.type&&i.subjectId===subject.id);return <div key={subject.type+subject.id} className="mt-4 border-t border-white/10 pt-3 text-sm"><strong>{subject.label}</strong><p className="break-all text-xs text-white/50">{subject.type} / {subject.id}</p><p className="text-amber-200">{identity?.status || 'NOT_VERIFIED'}{identity?.expiresAt && new Date(identity.expiresAt).getTime() <= new Date(data.asOf).getTime() ? ' / EXPIRED' : ''}</p></div>;})}
+        {[...data.members.map(m=>({type:'USER',id:m.userId,label:`Provider ${m.role}`})),...data.performers.map(p=>({type:'PERFORMER',id:p.id,label:p.displayName}))].map(subject => { const identity=data.identities.find(i=>i.subjectType===subject.type&&i.subjectId===subject.id);return <div key={subject.type+subject.id} className="mt-4 border-t border-white/10 pt-3 text-sm"><strong>{subject.label}</strong><p className="text-amber-200">{identity?.status || 'NOT_VERIFIED'}{identity?.expiresAt && new Date(identity.expiresAt).getTime() <= new Date(data.asOf).getTime() ? ' / EXPIRED' : ''}</p></div>;})}
       </div></section>}
     {tab === 'Consent' && <section className="grid gap-5 lg:grid-cols-2">
       <form className={panel + ' grid gap-4'} onSubmit={event => void submit(event,'consent')}><h2 className="text-lg">Record content-specific consent</h2><Select name="productId" title="Product">{productOptions}</Select><Select name="performerId" title="Depicted person">{personOptions}</Select><label>Protected signed release / agreement reference<input name="evidenceRef" className={field} required minLength={5} maxLength={300}/></label>

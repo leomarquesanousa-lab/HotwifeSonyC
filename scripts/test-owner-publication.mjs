@@ -58,3 +58,75 @@ assert.equal((await update({...input,title:'Revised draft',status:'DRAFT'},produ
 context=await a.ownerPublicationContext(a.db,workspace,owner,a.state.tables.VideoProduct[0]);assert.equal(context.needsAttestation,false);assert.deepEqual(context.missingConsentIds,[]);
 assert.equal((await update({...input,title:'Revised draft',status:'PUBLISHED'},product.id)).status,200);
 console.log('PASS: Save Draft after metadata edits preserves validated review and publishes without repeated intake.');
+
+// A single account-level identity review is reused across independent products.
+reset();a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType!=='USER');
+response=await create(publish);assert.equal(response.status,409);assert.match((await response.json()).error,/Creator: No identity verification.*OWNER account once/);assert.equal(a.state.tables.VideoProduct.length,0);
+await a.complianceAction({action:'identity',subjectType:'USER',subjectId:owner,status:'VERIFIED',dateOfBirth:'1990-01-01',evidenceRef:'test-vault:one-time-owner-review',expiresAt:null,attest:true});
+response=await create(publish);assert.equal(response.status,201);
+response=await create({...publish,title:'Second product',slug:'second-product'});assert.equal(response.status,201);
+assert.equal(a.state.tables.ComplianceIdentity.filter(row=>row.subjectType==='USER').length,1);
+assert.equal(a.state.tables.ComplianceIdentity.find(row=>row.subjectType==='USER').subjectId,owner);
+for(const scenario of ['other-user','other-workspace','performer-only','expired','rejected-latest','missing-evidence']){
+reset();const identity=a.state.tables.ComplianceIdentity.find(row=>row.subjectType==='USER');
+if(scenario==='other-user')identity.subjectId=admin;
+if(scenario==='other-workspace')identity.workspaceId=id(999);
+if(scenario==='performer-only')a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType!=='USER');
+if(scenario==='expired')identity.expiresAt='2020-01-01T00:00:00Z';
+if(scenario==='missing-evidence')identity.evidenceRef='';
+if(scenario==='rejected-latest')a.state.tables.ComplianceIdentity.push({...identity,id:id(998),status:'REJECTED',createdAt:'2099-01-01'});
+response=await create(publish);assert.equal(response.status,409,scenario);assert.match((await response.json()).error,/Creator:/);assert.equal(a.state.tables.VideoProduct.length,0);
+}
+console.log('PASS: missing OWNER identity gives a precise setup requirement; one actual identity-review action is reused by two products; wrong user/workspace, performer-only, expired, missing-evidence and latest rejected records cannot bypass the requirement.');
+
+// Publishing is commercial: reuse the actual provider's review instead of replacing it with the actor.
+reset();product=(await (await create(publish)).json()).product;
+const providerIdentity=a.state.tables.ComplianceIdentity.find(row=>row.subjectType==='USER');providerIdentity.subjectId=admin;
+a.state.tables.ContentReview[0].providerUserId=admin;
+const originalReview=structuredClone(a.state.tables.ContentReview[0]);
+const countIdentities=a.state.tables.ComplianceIdentity.length,countConsents=a.state.tables.ContentConsent.length;
+response=await update({...input,title:'Commercial metadata only',status:'PUBLISHED'},product.id);assert.equal(response.status,200,JSON.stringify(await response.clone().json()));
+assert.equal(a.state.tables.ContentReview.length,1);assert.equal(a.state.tables.ContentReview[0].providerUserId,admin);
+for(const key of ['reviewedBy','reviewedAt','decision','recordedOn'])assert.equal(a.state.tables.ContentReview[0][key],originalReview[key]);
+assert.equal(a.state.tables.ComplianceIdentity.length,countIdentities);assert.equal(a.state.tables.ContentConsent.length,countConsents);
+providerIdentity.expiresAt='2020-01-01T00:00:00Z';response=await update({...input,status:'PUBLISHED'},product.id);assert.equal(response.status,409);assert.match((await response.json()).error,/Content provider:.*expired/);
+reset();product=(await (await create(publish)).json()).product;a.state.userId=admin;
+response=await update({...input,title:'ADMIN metadata update',description:'Revised commercial description',category:'Updated category',status:'PUBLISHED'},product.id);assert.equal(response.status,200);
+assert.equal(a.state.tables.ContentReview[0].fingerprint,a.contentFingerprint(a.state.tables.VideoProduct[0]));assert.equal(a.state.tables.ContentReview[0].providerUserId,owner);
+reset();product=(await (await create(publish)).json()).product;a.state.tables.ContentConsent[0].evidenceRef='';response=await update({...input,status:'PUBLISHED'},product.id);assert.equal(response.status,409);assert.match((await response.json()).error,/content-specific consent evidence/);
+console.log('PASS: existing provider evidence reused without requiring the publishing actor to become the provider; reviewer decision preserved; ADMIN metadata edits publish immediately; expired provider and missing consent evidence remain blocked.');
+
+// Creator Verification: explicit link, real-review intent and protected evidence, never auto-approval.
+reset();a.state.tables.ComplianceIdentity=[];
+await assert.rejects(()=>a.complianceAction({action:'creatorLink',performerId:person}),/samePerson/);
+await a.complianceAction({action:'creatorLink',performerId:person,samePerson:true});
+assert.equal(a.state.tables.ComplianceIdentity.length,0);assert.equal((await a.complianceDashboard()).creator.status,'Action Required');
+assert.equal(a.state.tables.Performer.length,1);
+const documentId=id(90),documentRef='document:'+documentId;
+a.state.tables.PerformerDocument=[{id:documentId,workspaceId:workspace,performerId:person,status:'ACTIVE',title:'Fictional protected evidence',expiresAt:null}];
+const creatorIdentity={action:'creatorIdentity',dateOfBirth:'1990-01-01',evidenceRef:documentRef,expiresAt:null,samePerson:true,reviewed:true};
+await assert.rejects(()=>a.complianceAction({...creatorIdentity,reviewed:false}));
+await assert.rejects(()=>a.complianceAction({...creatorIdentity,evidenceRef:'document:'+id(99)}),/protected document/);
+await a.complianceAction(creatorIdentity);assert.equal(a.state.tables.ComplianceIdentity.length,2);
+assert.equal((await a.complianceDashboard()).creator.status,'Verified');assert.equal(a.state.tables.Performer.length,1);
+product=(await (await create(input)).json()).product;
+const creatorReview={action:'creatorReview',productId:product.id,recordedOn:'2025-01-01',reviewed:true};
+await assert.rejects(()=>a.complianceAction(creatorReview),/distribution-rights evidence/);
+assert.equal(a.state.tables.ContentReview.length,0);
+await a.complianceAction({...creatorReview,consentEvidenceRef:documentRef,rightsEvidenceRef:documentRef});
+assert.equal(a.state.tables.VideoProduct[0].status,'DRAFT');assert.equal(a.state.tables.ContentReview[0].providerUserId,owner);
+const counts=[a.state.tables.ContentReview.length,a.state.tables.ContentConsent.length,a.state.tables.ComplianceIdentity.length];
+await a.complianceAction(creatorReview);assert.deepEqual([a.state.tables.ContentReview.length,a.state.tables.ContentConsent.length,a.state.tables.ComplianceIdentity.length],counts);
+assert.equal((await update({...input,status:'PUBLISHED'},product.id)).status,200);assert.equal((await a.getPublishedVideos()).length,1);
+a.state.tables.ComplianceIdentity[0].expiresAt='2020-01-01T00:00:00Z';assert.equal((await a.complianceDashboard()).creator.status,'Expired');assert.equal((await update({...input,status:'PUBLISHED'},product.id)).status,409);
+a.state.tables.ComplianceIdentity[0].expiresAt=null;
+a.state.tables.MediaAssetPerformer.push({workspaceId:workspace,mediaAssetId:media,performerId:id(91)});await assert.rejects(()=>a.complianceAction(creatorReview),/other participants/);a.state.tables.MediaAssetPerformer.pop();
+a.state.tables.ContentConsent[0].status='REVOKED';await assert.rejects(()=>a.complianceAction(creatorReview),/revoked/);
+reset();a.state.userId=operator;await assert.rejects(()=>a.complianceAction({action:'creatorLink',performerId:person,samePerson:true}),/OWNER or ADMIN/);
+console.log('PASS: explicit creator link never verifies; protected-document checks and real-review intent required; single form records both identities; consolidated statuses, review/consent reuse, Draft -> Publish -> storefront, expired identity, other participants and revoked consent guards. Isolated fixtures only.');
+
+reset();a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType==='USER');
+await a.complianceAction({action:'creatorLink',performerId:person,samePerson:true});assert.equal((await a.complianceDashboard()).creator.status,'Verified');assert.equal(a.state.tables.ComplianceIdentity.length,2);assert.equal(a.state.tables.ComplianceIdentity[0].evidenceRef,a.state.tables.ComplianceIdentity[1].evidenceRef);
+await a.complianceAction({action:'creatorLink',performerId:person,samePerson:true});assert.equal(a.state.tables.ComplianceIdentity.length,2);assert.equal(a.state.tables.Performer.length,1);
+reset();a.state.tables.ComplianceIdentity[1].status='REJECTED';await a.complianceAction({action:'creatorLink',performerId:person,samePerson:true});assert.equal((await a.complianceDashboard()).creator.status,'Action Required');assert.equal(a.state.tables.ComplianceIdentity[1].status,'REJECTED');
+console.log('PASS: existing reviewed OWNER evidence reused after explicit same-person link without re-entry or duplicate profiles; rejected person evidence is never silently replaced.');

@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
-import ComplianceAdmin from '@/components/compliance/ComplianceAdmin';
+import CreatorVerification from '@/components/compliance/CreatorVerification';
 import { complianceDashboard, ComplianceError, type ComplianceDashboard } from '@/src/lib/compliance/service';
 import { AuthError } from '@/src/lib/auth/request';
-export const metadata = { title: 'Compliance / Reports | HotwifeSonyC', robots: { index: false, follow: false } };
+export const metadata = { title: 'Creator Verification | HotwifeSonyC', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 export default async function Page() {
   let data: ComplianceDashboard;
@@ -12,5 +12,5 @@ export default async function Page() {
     if ((error instanceof AuthError || error instanceof ComplianceError) && error.status === 403) return <main className="p-8">Compliance access requires OWNER or ADMIN.</main>;
     throw error;
   }
-  return <ComplianceAdmin initial={data}/>;
+  return <CreatorVerification initial={data}/>;
 }

@@ -37,7 +37,7 @@ const consent={action:'consent',productId,performerId:person,evidenceRef:'protec
 await a.complianceAction(consent);await assert.rejects(()=>a.complianceAction(review),/consent/);
 await a.complianceAction({...consent,publication:true});assert.equal(a.state.tables.ContentConsent.length,2);
 await a.complianceAction(review);let current=a.state.tables.VideoProduct[0];await a.db.transaction(tx=>a.assertCommercialPublication(tx,workspace,current,current));
-await assert.rejects(()=>a.db.transaction(tx=>a.assertCommercialPublication(tx,workspace,{...current,title:'Changed promotion'},current)),/review/);
+await a.db.transaction(tx=>a.assertCommercialPublication(tx,workspace,{...current,title:'Changed promotion'},current)); // Commercial metadata reuses the same approved media evidence.
 await assert.rejects(()=>a.db.transaction(tx=>a.assertCommercialPublication(tx,workspace,{...current,mediaAssetId:id(20)},current)),/review/);
 const secondPerson=id(21);a.state.tables.MediaAssetPerformer.push({workspaceId:workspace,mediaAssetId:mediaId,performerId:secondPerson});await assert.rejects(()=>a.complianceAction(review),/unavailable/);a.state.tables.MediaAssetPerformer.pop();
 const legacy={...current,id:id(22),status:'PUBLISHED',complianceStatus:'LEGACY_UNREVIEWED'};await a.db.transaction(tx=>a.assertCommercialPublication(tx,workspace,legacy,legacy));
