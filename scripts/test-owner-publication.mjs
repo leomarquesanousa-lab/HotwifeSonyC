@@ -61,7 +61,7 @@ console.log('PASS: Save Draft after metadata edits preserves validated review an
 
 // A single account-level identity review is reused across independent products.
 reset();a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType!=='USER');
-response=await create(publish);assert.equal(response.status,409);assert.match((await response.json()).error,/Creator: No identity verification.*OWNER account once/);assert.equal(a.state.tables.VideoProduct.length,0);
+response=await create(publish);assert.equal(response.status,409);assert.match((await response.json()).error,/Creator: No identity verification.*one real identity review/);assert.equal(a.state.tables.VideoProduct.length,0);
 await a.complianceAction({action:'identity',subjectType:'USER',subjectId:owner,status:'VERIFIED',dateOfBirth:'1990-01-01',evidenceRef:'test-vault:one-time-owner-review',expiresAt:null,attest:true});
 response=await create(publish);assert.equal(response.status,201);
 response=await create({...publish,title:'Second product',slug:'second-product'});assert.equal(response.status,201);
@@ -155,3 +155,27 @@ const foreignProfile=await a.db.orm.public.Performer.create({workspaceId:id(999)
 response=await update({...input,creatorId:foreignProfile.id,status:'DRAFT'},product.id);assert.equal(response.status,409);
 const productCount=a.state.tables.VideoProduct.length;a.state.failTable='ComplianceNote';response=await create({...input,creatorId:profile.id,slug:'association-rollback'});assert.equal(response.status,500);assert.equal(a.state.tables.VideoProduct.length,productCount);a.state.failTable=null;
 console.log('PASS: foreign-workspace creator denied and association-write failure rolls back the complete product save.');
+
+// Historical records may contain just one side of an explicitly reviewed same-person link.
+async function fixtureLink(samePersonReviewed=true,linkWorkspace=workspace){await a.db.orm.public.ComplianceNote.create({workspaceId:linkWorkspace,objectType:'CREATOR_LINK',objectId:owner,actorId:owner,body:JSON.stringify({performerId:person,samePersonReviewed})});}
+for(const sourceType of ['USER','PERFORMER']){
+reset();await fixtureLink();a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType===sourceType);
+context=await a.ownerPublicationContext(a.db,workspace,owner,{...input,creatorId:person});assert.deepEqual(context.pending,[]);
+response=await create({...publish,creatorId:person});assert.equal(response.status,201,JSON.stringify(await response.clone().json()));assert.equal(a.state.tables.ComplianceIdentity.length,1);
+assert.equal((await a.complianceDashboard()).creator.status,'Verified');
+a.state.tables.ComplianceIdentity[0].status='REJECTED';product=(await response.json()).product;assert.equal((await update({...input,creatorId:person,status:'PUBLISHED'},product.id)).status,409);
+}
+reset();await fixtureLink();a.state.tables.ComplianceIdentity=[];context=await a.ownerPublicationContext(a.db,workspace,owner,{...input,creatorId:person});assert.equal(context.pending.length,1);assert.match(context.pending[0],/one real identity review/);
+for(const scenario of ['no-link','unreviewed-link','foreign-link','expired','conflict','rejected-target','incomplete-target','missing-evidence','underage-recording']){
+reset();
+if(scenario!=='no-link')await fixtureLink(scenario!=='unreviewed-link',scenario==='foreign-link'?id(999):workspace);
+if(['no-link','unreviewed-link','foreign-link','expired','missing-evidence','underage-recording'].includes(scenario))a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType==='PERFORMER');
+if(scenario==='expired')a.state.tables.ComplianceIdentity[0].expiresAt='2020-01-01T00:00:00Z';
+if(scenario==='missing-evidence')a.state.tables.ComplianceIdentity[0].evidenceRef='';
+if(scenario==='conflict')a.state.tables.ComplianceIdentity[1].dateOfBirth='1991-01-01';
+if(scenario==='rejected-target')a.state.tables.ComplianceIdentity[0].status='REJECTED';
+if(scenario==='incomplete-target')a.state.tables.ComplianceIdentity[0].status='NOT_VERIFIED';
+const payload=scenario==='underage-recording'?{...publish,ownerPublication:{...legal,recordedOn:'2000-01-01'}}:publish;
+response=await create({...payload,creatorId:person});assert.equal(response.status,409,scenario);assert.equal(a.state.tables.VideoProduct.length,0);
+}
+console.log('PASS: single reviewed identity reused bidirectionally through explicit same-person link without writing identity records; missing linked identity reported once; unlinked/different-workspace/unreviewed links, rejection, incomplete evidence, conflicts, expiry and underage-at-recording remain blocked.');

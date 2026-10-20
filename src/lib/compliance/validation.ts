@@ -27,6 +27,8 @@ export const reportInput = z.object({
   truthful: z.literal(true),
 }).strict();
 export const adminInput = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('creatorProfile'), performerId: z.string().uuid(), displayName: z.string().trim().min(1).max(120), legalName: z.string().trim().max(200).optional(), status: z.enum(['ACTIVE', 'INACTIVE']).optional() }).strict(),
+  z.object({ action: z.literal('creatorDocumentReplacement'), performerId: z.string().uuid(), documentId: z.string().uuid() }).strict(),
   z.object({ action: z.literal('creatorLink'), performerId: z.string().uuid().optional(), displayName: z.string().trim().min(1).max(120).optional(), samePerson: z.literal(true) }).strict(),
   z.object({ action: z.literal('creatorIdentity'), performerId: z.string().uuid().optional(), displayName: z.string().trim().min(1).max(120).optional(), dateOfBirth: dateOnly, evidenceRef: z.string().trim().min(5).max(300), expiresAt: z.iso.datetime({ offset: true }).nullable(), samePerson: z.literal(true), reviewed: z.literal(true) }).strict(),
   z.object({ action: z.literal('creatorReview'), productId: z.string().uuid(), recordedOn: dateOnly, consentEvidenceRef: z.string().trim().min(5).max(300).optional(), rightsEvidenceRef: z.string().trim().min(5).max(300).optional(), reviewed: z.literal(true) }).strict(),
