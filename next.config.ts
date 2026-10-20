@@ -5,6 +5,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Limit page-data collection and static generation workers on shared hosting.
+    cpus: 2,
+  },
   redirects() {
     return [
       { source: '/meus-videos', destination: '/my-videos', permanent: true },
