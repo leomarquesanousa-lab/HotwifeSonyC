@@ -47,7 +47,7 @@ export default function MediaPreviewModal({ media, onClose }: { media: Media; on
     <div role="dialog" aria-modal="true" aria-labelledby="media-preview-title" className="w-full max-w-5xl overflow-hidden rounded-xl border border-white/10 bg-[#0b1018]" onClick={event => event.stopPropagation()}>
       <header className="flex items-center justify-between gap-4 p-4"><h2 id="media-preview-title" className="truncate">Preview: {media.originalFileName}</h2><button ref={closeButton} onClick={onClose} className="min-h-11 px-4">Close preview</button></header>
       {error && <p role="alert" className="p-6 text-amber-200">{error}</p>}
-      {!url && !error && <p role="status" className="p-6">Loading preview…</p>}
+      {!url && !error && <p role="status" className="p-6">Loading previewâ€¦</p>}
       {media.mediaType === 'IMAGE' ? url && !error && <img src={url} alt={media.originalFileName} className="max-h-[75vh] w-full object-contain" onError={() => setError('Image unavailable. Close and reopen to retry.')}/> : <video ref={video} src={url || undefined} hidden={!url || !!error} controls controlsList="nodownload" disablePictureInPicture playsInline autoPlay preload="metadata" onContextMenu={event => event.preventDefault()} onError={() => { if (url) setError('Video unavailable or unsupported by this browser. The file may be missing or the preview expired. Close and reopen to retry.'); }} className="max-h-[75vh] w-full bg-black"/>}
     </div>
   </div>;
