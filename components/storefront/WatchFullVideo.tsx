@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import VideoModal from './VideoModal';
+import { pauseOtherVideos, playbackMetric } from './useVideoPlayback';
 
 export default function WatchFullVideo({ video, label = 'Watch Video', className = 'store-button' }: {
   video: { id: string; title: string }; label?: string; className?: string;
@@ -19,15 +20,20 @@ export default function WatchFullVideo({ video, label = 'Watch Video', className
   }, []);
 
   async function watch() {
+    pauseOtherVideos();
     requestRef.current?.abort();
     const request = new AbortController();
     requestRef.current = request;
     setOpen(true); setBusy(true); setError(''); setUrl(null);
+    const authorizationStarted = performance.now();
     try {
       const response = await fetch(`/api/account/videos/${encodeURIComponent(video.id)}/watch`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store', signal: request.signal });
       const data = await response.json();
       if (!response.ok || typeof data.url !== 'string') throw new Error(data.error || 'Unable to play this video.');
-      if (!request.signal.aborted) setUrl(data.url);
+      if (!request.signal.aborted) {
+        playbackMetric('full', 'authorization', performance.now() - authorizationStarted);
+        setUrl(data.url);
+      }
     } catch (failure) {
       if (!request.signal.aborted) setError(failure instanceof Error ? failure.message : 'Unable to play this video.');
     } finally { if (!request.signal.aborted) setBusy(false); }

@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import styles from './VideoModal.module.css';
+import { useVideoPlayback } from './useVideoPlayback';
 
 export default function VideoModal({ title, url, busy, error, onClose, onPlaybackError, triggerRef }: {
   title: string; url: string | null; busy: boolean; error: string;
@@ -12,6 +13,7 @@ export default function VideoModal({ title, url, busy, error, onClose, onPlaybac
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playback = useVideoPlayback(videoRef, 'full', url);
   const titleId = useId();
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function VideoModal({ title, url, busy, error, onClose, onPlaybac
     <div className={styles.content}>
       {busy && <p role="status">Loading video...</p>}
       {error && <p role="alert">{error}</p>}
-      {url && <video ref={videoRef} key={url} className={styles.video} src={url} controls autoPlay controlsList="nodownload" disablePictureInPicture preload="metadata" aria-label={`Watch ${title}`} onError={onPlaybackError}/>}
+      {url && <video {...playback} ref={videoRef} key={url} className={styles.video} src={url} controls autoPlay controlsList="nodownload" disablePictureInPicture preload="none" aria-label={`Watch ${title}`} onError={() => { playback.onError(); onPlaybackError(); }}/>}
     </div>
   </dialog>, document.body);
 }

@@ -49,9 +49,14 @@ export async function resolvePublicMedia(slug: string, kind: string) {
     .where(p => p.publishedAt.lte(new Date().toISOString())).first();
   if (!product) return null;
   if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) return null;
-  const [workspace, full] = await Promise.all([
+  const assetId = kind === 'teaser' ? product.teaserMediaAssetId : product.thumbnailMediaAssetId;
+  if (assetId === product.mediaAssetId) return null;
+  // Independent reads run concurrently; every access check remains mandatory.
+  const [workspace, full, asset, protectedProduct] = await Promise.all([
     db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first(),
     db.orm.public.MediaAsset.where({ id: product.mediaAssetId, workspaceId: product.workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first(),
+    assetId ? db.orm.public.MediaAsset.where({ id: assetId, workspaceId: product.workspaceId, status: 'UPLOADED' }).first() : Promise.resolve(null),
+    assetId ? db.orm.public.VideoProduct.where({ mediaAssetId: assetId }).first() : Promise.resolve(null),
   ]);
   if (!workspace || !full) return null;
   if (kind === 'thumbnail' && !product.thumbnailMediaAssetId) {
@@ -60,11 +65,8 @@ export async function resolvePublicMedia(slug: string, kind: string) {
     if (collision && (collision.mediaType !== 'IMAGE' || !collision.contentType.startsWith('image/'))) return null;
     return { objectKey: full.thumbnailObjectKey, contentType: 'image/jpeg' };
   }
-  const assetId = kind === 'teaser' ? product.teaserMediaAssetId : product.thumbnailMediaAssetId;
-  if (!assetId || assetId === product.mediaAssetId) return null;
-  const asset = await db.orm.public.MediaAsset.where({ id: assetId, workspaceId: product.workspaceId, status: 'UPLOADED' }).first();
   if (!asset) return null;
-  if (await db.orm.public.VideoProduct.where({ mediaAssetId: asset.id }).first()) return null;
+  if (protectedProduct) return null;
   if (kind === 'teaser' && (asset.mediaType !== 'VIDEO' || !asset.contentType.startsWith('video/'))) return null;
   if (kind === 'thumbnail' && (asset.mediaType !== 'IMAGE' || !['image/jpeg', 'image/png', 'image/webp'].includes(asset.contentType))) return null;
   return { objectKey: asset.objectKey, contentType: asset.contentType };

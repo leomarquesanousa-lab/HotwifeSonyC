@@ -25,14 +25,18 @@ export async function requirePurchasedVideo(productId: string) {
   if (!z.string().uuid().safeParse(productId).success) throw new PurchaseAccessError('Video access denied.', 403);
   const product = await db.orm.public.VideoProduct.where({ id: productId }).first();
   if (!product) throw new PurchaseAccessError('Video unavailable.', 404);
-  const administrativeAccess = await hasVideoPreviewAccess(user.id, product.workspaceId);
+  // Both reads are scoped to the resolved product/user. Do not cache either:
+  // revocations and inactive workspaces must affect each new playback session.
+  const [administrativeAccess, workspace] = await Promise.all([
+    hasVideoPreviewAccess(user.id, product.workspaceId),
+    db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first(),
+  ]);
   if (!administrativeAccess) {
     const purchase = await db.orm.public.Purchase.where({ userId: user.id, videoProductId: productId, status: 'PAID' }).first();
     if (!purchase) throw new PurchaseAccessError('This Video Is Locked. Purchase this video to unlock the full content.', 403);
   }
   // Safety takedowns block new playback sessions without changing admin/Purchase authorization.
   if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) throw new PurchaseAccessError('Video unavailable pending a safety review.', 403);
-  const workspace = await db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first();
   if (!workspace) throw new PurchaseAccessError('Video unavailable.', 404);
   return product;
 }
