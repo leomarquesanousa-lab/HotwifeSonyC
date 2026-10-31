@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "next-intl";
+import Link from 'next/link';
 import {
   ArrowRight,
   CheckCircle2,
@@ -30,7 +31,7 @@ export default function OnboardingPage() {
 
             <div>
               <div className="font-semibold tracking-tight">
-                <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/>
+                <Link href="/" aria-label="HotwifeSonyC home"><img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-14 w-auto max-w-full object-contain"/></Link>
               </div>
 
               <div className="text-xs text-white/35">

@@ -9,10 +9,10 @@ import { fixture } from './fixtures/store-db.mjs';
 const nativeRequire = createRequire(import.meta.url);
 const cache = new Map();
 function execute(source, filename, resolve) {
-  const module = { exports: {} };
+  const compiled = { exports: {} };
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  new Function('require', 'module', 'exports', code)(resolve, module, module.exports);
-  return module.exports;
+  new Function('require', 'module', 'exports', code)(resolve, compiled, compiled.exports);
+  return compiled.exports;
 }
 const memory = execute(fixture, 'fixture.ts', nativeRequire);
 function load(filename) {
@@ -48,7 +48,7 @@ assert.match((await context()).pending.join(' '), /Creator/);
 const identity = { workspaceId, status: 'VERIFIED', dateOfBirth: '1990-01-01', evidenceRef: 'vault:verified-id', expiresAt: null, createdAt: '2026-01-01' };
 state.tables.ComplianceIdentity = [{ ...identity, subjectType: 'USER', subjectId: actorId }, { ...identity, subjectType: 'PERFORMER', subjectId: performerId }];
 assert.deepEqual((await context()).missingConsentIds, [performerId]);
-await assert.rejects(() => db.transaction(tx => service.completeOwnerPublication(tx, workspaceId, actorId, product)), /pending content review/);
+await assert.rejects(() => db.transaction(tx => service.completeOwnerPublication(tx, workspaceId, actorId, product)), /Publication pending:.*recording date.*approved content review/);
 const evidence = { recordedOn: '2026-01-01', attest: true, consents: [{ performerId, evidenceRef: 'vault:content-release-2257' }] };
 await db.transaction(tx => service.completeOwnerPublication(tx, workspaceId, actorId, state.tables.VideoProduct[0], evidence));
 let ready = await context();
@@ -59,7 +59,8 @@ assert.deepEqual(ready.missingConsentIds, []);
 const counts = [state.tables.ComplianceIdentity.length, state.tables.ContentConsent.length];
 await db.transaction(tx => service.completeOwnerPublication(tx, workspaceId, actorId, state.tables.VideoProduct[0]));
 assert.deepEqual([state.tables.ComplianceIdentity.length, state.tables.ContentConsent.length], counts);
-assert.equal((await context({ ...state.tables.VideoProduct[0], title: 'Changed' })).needsAttestation, true);
+// Metadata-only edits retain the approved media evidence; no new attestation.
+assert.equal((await context({ ...state.tables.VideoProduct[0], title: 'Changed' })).needsAttestation, false);
 ready = await context({ ...state.tables.VideoProduct[0], mediaAssetId: id(9) });
 assert.equal(ready.recordedOn, null);
 assert.deepEqual(ready.missingConsentIds, [performerId]);

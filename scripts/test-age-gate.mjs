@@ -19,13 +19,14 @@ try {
   assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden');
   await page.keyboard.press('Escape');assert.equal(await dialog.isVisible(),true);
   const enter=page.getByRole('button',{name:'Enter site'});assert.equal(await enter.isDisabled(),true);
-  await page.getByRole('checkbox').nth(0).check();assert.equal(await enter.isDisabled(),true);
-  await page.getByRole('checkbox').nth(1).check();await enter.click();await dialog.waitFor({state:'detached'});
+  assert.equal(await page.getByRole('checkbox').count(),1);
+  await page.getByRole('checkbox').check();assert.equal(await enter.isDisabled(),false);
+  await enter.click();await dialog.waitFor({state:'detached'});
   assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
   await page.reload();assert.equal(await page.locator('dialog').count(),0);
   await page.evaluate(()=>sessionStorage.clear());
   await page.goto(`${origin}/report-content`);assert.equal(await page.locator('dialog').count(),0);
   await page.goto(`${origin}/`);await page.getByRole('dialog').waitFor();
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  console.log('PASS: age gate requires both confirmations, resists ESC bypass, locks/restores scrolling, retains session acknowledgment, exempts reporting, and fits mobile; isolated fixture only.');
+  console.log('PASS: existing age confirmation required; ESC bypass blocked, scroll restored, session acknowledgment retained, reporting exempt and mobile layout fits. Synthetic fixture only.');
 } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

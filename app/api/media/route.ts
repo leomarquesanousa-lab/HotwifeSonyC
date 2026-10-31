@@ -1,3 +1,5 @@
+import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
+import { AuthError, authFailure } from '@/src/lib/auth/request';
 import {
   NextRequest,
   NextResponse,
@@ -31,13 +33,7 @@ export async function GET(
       );
     }
 
-    const workspaceMember =
-      await db.orm.public.WorkspaceMember
-        .where({
-          userId:
-            session.user.id,
-        })
-        .first();
+    const { membership: workspaceMember } = await requireAdministrativeAccess();
 
     if (!workspaceMember) {
       return NextResponse.json(
@@ -163,6 +159,8 @@ export async function GET(
     return NextResponse.json({
       success: true,
 
+      canDelete: ['OWNER', 'ADMIN'].includes(workspaceMember.role),
+
       ...(performer ? { performer: { id: performer.id, displayName: performer.displayName } } : {}),
 
       media:
@@ -244,6 +242,7 @@ export async function GET(
         sortedMedia.length,
     });
   } catch (error) {
+    if (error instanceof AuthError) return authFailure(error);
     console.error(
       "MEDIA_LIBRARY_LIST_ERROR",
       error,

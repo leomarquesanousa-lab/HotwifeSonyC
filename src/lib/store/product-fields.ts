@@ -27,6 +27,7 @@ export function parsePublishDate(value: string): string | null {
 }
 
 export const productInputSchema = z.object({
+  participantIds: z.array(z.string().uuid()).max(100).refine(ids => new Set(ids).size === ids.length, 'Select each participant only once.').optional(),
   creatorId: z.string().uuid().nullable().optional(),
   mediaAssetId: z.string().uuid().nullable().optional(),
   teaserMediaAssetId: z.string().uuid().nullable().optional(),
@@ -47,6 +48,7 @@ export const productInputSchema = z.object({
 }).strict();
 
 type ExistingFields = {
+  participantIds?: string[];
   creatorId?: string | null;
   mediaAssetId: string; teaserMediaAssetId: string | null; thumbnailMediaAssetId: string | null; publishedAt: string | null;
 };
@@ -57,6 +59,7 @@ export function resolveProductFields(input: z.infer<typeof productInputSchema>, 
   const publishedAt = input.publishedAt === undefined ? existing?.publishedAt ?? null : input.publishedAt;
   return {
     ...fields,
+    participantIds: input.participantIds ?? existing?.participantIds ?? [],
     creatorId: input.creatorId === undefined ? existing?.creatorId ?? null : input.creatorId,
     mediaAssetId: input.mediaAssetId ?? existing?.mediaAssetId ?? '',
     teaserMediaAssetId: input.teaserMediaAssetId ?? existing?.teaserMediaAssetId ?? null,

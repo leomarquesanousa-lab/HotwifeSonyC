@@ -1,3 +1,5 @@
+import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
+import { assertSameOrigin, AuthError, authFailure } from '@/src/lib/auth/request';
 import {
   UploadPartCommand,
 } from "@aws-sdk/client-s3";
@@ -34,6 +36,7 @@ export async function POST(
   request: NextRequest,
 ) {
   try {
+    assertSameOrigin(request);
     const session =
       await getCurrentSession();
 
@@ -80,11 +83,7 @@ export async function POST(
       );
     }
 
-    const workspaceMember =
-      await db.orm.public.WorkspaceMember.where({
-        userId:
-          session.user.id,
-      }).first();
+    const { membership: workspaceMember } = await requireAdministrativeAccess();
 
     if (!workspaceMember) {
       return NextResponse.json(
@@ -173,6 +172,7 @@ export async function POST(
         15 * 60,
     });
   } catch (error) {
+    if (error instanceof AuthError) return authFailure(error);
     console.error(
       "MEDIA_MULTIPART_PART_URL_ERROR",
       error,

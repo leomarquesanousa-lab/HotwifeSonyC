@@ -35,6 +35,7 @@ import {
   useUploadManager,
 } from "@/src/components/app/UploadManagerProvider";
 
+import Link from 'next/link';
 import MediaPreviewModal from '@/src/components/app/MediaPreviewModal';
 
 type MediaAsset = {
@@ -66,6 +67,7 @@ type MediaAsset = {
 
 type MediaResponse = {
   success: boolean;
+  canDelete?: boolean;
   media?: MediaAsset[];
   total?: number;
   error?: string;
@@ -108,6 +110,9 @@ export default function MediaLibraryPage() {
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [canDelete, setCanDelete] = useState(false);
+  const deletionInFlight = useRef(false);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('ALL');
   const [category, setCategory] = useState('ALL');
@@ -128,7 +133,7 @@ export default function MediaLibraryPage() {
       const categoryData: CategoriesResponse = await categoryResponse.json();
       if (!categoryResponse.ok || !categoryData.success) throw new Error('Unable to load media categories.');
       const items = data.media ?? [];
-      setMedia(items); setCategories(categoryData.categories ?? []);
+      setMedia(items); setCanDelete(data.canDelete === true); setCategories(categoryData.categories ?? []);
       const assignments = await Promise.all(items.map(async item => {
         const result = await fetch(`/api/media/${item.id}/categories`);
         const data: CategoriesResponse = await result.json();
@@ -146,7 +151,7 @@ export default function MediaLibraryPage() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => {
-    void loadMedia();
+    void Promise.resolve().then(loadMedia);
     const refresh = () => { void loadMedia(); };
     window.addEventListener('creator-platform:media-updated', refresh);
     return () => window.removeEventListener('creator-platform:media-updated', refresh);
@@ -156,28 +161,33 @@ export default function MediaLibraryPage() {
     if (!result.success) setError(result.error ?? 'Unable to queue files.');
   }
   async function removeMedia(item: MediaAsset) {
+    if (!canDelete || deletionInFlight.current) return;
     if (!window.confirm(`Delete "${item.originalFileName}" from your library and storage?`)) return;
-    setDeleting(item.id); setError('');
+    deletionInFlight.current = true;
+    setDeleting(item.id); setError(''); setNotice('');
     try {
-      const response = await fetch(`/api/media/${item.id}`, {method:'DELETE'});
+      const response = await fetch(`/api/media/${item.id}`, {method:'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({confirmed:true})});
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message ?? 'Unable to delete this media.');
+      setMedia(current => current.filter(media => media.id !== item.id));
+      setNotice(data.message ?? 'Media deleted.');
       await loadMedia();
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to delete this media.'); }
-    finally { setDeleting(null); }
+    finally { deletionInFlight.current = false; setDeleting(null); }
   }
   const filtered = media.filter(item => item.originalFileName.toLowerCase().includes(query.toLowerCase()) && (type === 'ALL' || item.mediaType === type) && (status === 'ALL' || item.status === status) && (category === 'ALL' || assigned[item.id]?.some(entry => entry.id === category)));
   const control = 'min-h-11 rounded-xl border border-white/[0.08] bg-[#0c1119] px-3 text-xs text-white/70 outline-none focus:border-blue-400/50';
   return <main className="mx-auto max-w-[1540px] p-5 text-white sm:p-7 lg:p-8" onDragOver={event => event.preventDefault()} onDrop={event => {event.preventDefault(); queueFiles(Array.from(event.dataTransfer.files));}}>
     <input ref={inputRef} type="file" multiple accept="video/mp4,video/quicktime,video/x-m4v,image/jpeg,image/png,image/webp,.mp4,.mov,.m4v,.jpg,.jpeg,.png,.webp" className="hidden" onChange={event => {queueFiles(Array.from(event.target.files ?? [])); event.target.value='';}}/>
-    <header className="mb-6 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-[28px] font-semibold tracking-tight">Media Library</h1><p className="mt-1 text-xs text-white/40">Your store's video and image repository.</p></div><div className="flex gap-2"><button onClick={() => void loadMedia()} disabled={loading} aria-label="Refresh media library" className={control}><RefreshCw size={16}/></button><button onClick={() => inputRef.current?.click()} className="flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-xs font-semibold"><UploadCloud size={16}/> Select Files</button></div></header>
+    <header className="mb-6 flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-[28px] font-semibold tracking-tight">Media Library</h1><p className="mt-1 text-xs text-white/40">Your store&apos;s video and image repository.</p></div><div className="flex gap-2"><button onClick={() => void loadMedia()} disabled={loading} aria-label="Refresh media library" className={control}><RefreshCw size={16}/></button><button onClick={() => inputRef.current?.click()} className="flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 px-4 text-xs font-semibold"><UploadCloud size={16}/> Select Files</button></div></header>
     {uploads.length > 0 && <UploadQueuePanel uploads={uploads} isUploading={isUploading} onStart={() => void startAll()} onCancel={cancelUpload} onRemove={removeUpload} onClear={clearQueue}/>}
     {error && <p role="alert" className="mb-5 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-xs text-red-200">{error}</p>}
+    {notice && <p role="status" className="mb-5 text-sm text-emerald-300">{notice}</p>}
     <div className="mb-5 flex flex-wrap items-center gap-3"><input aria-label="Search media" placeholder="Search media..." value={query} onChange={event => setQuery(event.target.value)} className={`${control} min-w-48 flex-1`}/><select aria-label="Media type" value={type} onChange={event => setType(event.target.value)} className={control}><option value="ALL">All Media</option><option value="VIDEO">Videos</option><option value="IMAGE">Images</option></select><select aria-label="Category" value={category} onChange={event => setCategory(event.target.value)} className={control}><option value="ALL">All Categories</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select><select aria-label="Status" value={status} onChange={event => setStatus(event.target.value)} className={control}><option value="ALL">All Statuses</option><option value="UPLOADED">Uploaded</option><option value="UPLOADING">Uploading</option><option value="FAILED">Failed</option><option value="CANCELLED">Cancelled</option></select><button aria-label="Grid view" aria-pressed={viewMode==='GRID'} onClick={() => setViewMode('GRID')} className={control}><Grid2X2 size={16}/></button><button aria-label="List view" aria-pressed={viewMode==='LIST'} onClick={() => setViewMode('LIST')} className={control}><List size={16}/></button></div>
     <p className="mb-4 text-xs text-white/35">{media.length} media assets{filtered.length !== media.length ? ` · ${filtered.length} matching filters` : ''}</p>
     {loading ? <div role="status" className="flex items-center justify-center gap-3 py-20 text-sm text-white/40"><Loader2 className="animate-spin" size={18}/> Loading media...</div> : !filtered.length ? <section className="rounded-2xl border border-dashed border-white/10 py-20 text-center"><FileVideo2 className="mx-auto mb-4 text-white/20" size={32}/><h2 className="text-lg">{media.length ? 'No matching media' : 'Your library is ready for a fresh start.'}</h2><p className="mt-3 text-sm text-white/40">{media.length ? 'Try another search or filter.' : 'Select files or drop them here to add your first videos and images.'}</p></section> : <div className={viewMode==='GRID' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'overflow-hidden rounded-2xl border border-white/10'}>{filtered.map(item => {
       const Tile = viewMode==='GRID' ? MediaTile : MediaListRow;
-      return <Tile key={item.id} media={item} previewUrl={previews[item.id]} categories={assigned[item.id] ?? []} isDeleting={deleting===item.id} onPreview={() => setViewer(item)} onManageCategories={() => setCategoryMedia(item)} onRemove={() => void removeMedia(item)}/>;
+      return <Tile key={item.id} media={item} previewUrl={previews[item.id]} categories={assigned[item.id] ?? []} canDelete={canDelete} isDeleting={deleting===item.id} onPreview={() => setViewer(item)} onManageCategories={() => setCategoryMedia(item)} onRemove={() => void removeMedia(item)}/>;
     })}</div>}
     {viewer && <MediaPreviewModal key={viewer.id} media={viewer} onClose={closeViewer}/>}
     {categoryMedia && <MediaCategoryModal media={categoryMedia} categories={categories} assignedCategories={assigned[categoryMedia.id] ?? []} onClose={() => setCategoryMedia(null)} onCategoriesChanged={loadMedia}/>}
@@ -185,9 +195,10 @@ export default function MediaLibraryPage() {
 }
 
 function ProductLinks({ media }: { media: MediaAsset }) {
+  const [now] = useState(() => Date.now());
   return <div className="flex max-w-64 flex-wrap gap-1">{media.products?.map(product => {
-    const status = product.status === 'PUBLISHED' && product.publishedAt && new Date(product.publishedAt).getTime() > Date.now() ? 'Scheduled' : product.status === 'PUBLISHED' ? 'Published' : product.status === 'ARCHIVED' ? 'Archived' : 'Draft';
-    return <a key={product.id + product.role} href="/app/store/videos" className="rounded bg-violet-500/10 px-2 py-1 text-[10px] text-violet-200" title={product.title}>{status} / {product.role} / {product.title}</a>;
+    const status = product.status === 'PUBLISHED' && product.publishedAt && new Date(product.publishedAt).getTime() > now ? 'Scheduled' : product.status === 'PUBLISHED' ? 'Published' : product.status === 'ARCHIVED' ? 'Archived' : 'Draft';
+    return <Link key={product.id + product.role} href="/app/store/videos" className="rounded bg-violet-500/10 px-2 py-1 text-[10px] text-violet-200" title={product.title}>{status} / {product.role} / {product.title}</Link>;
   })}</div>;
 }
 
@@ -725,6 +736,7 @@ function UploadQueueRow({
 }
 
 function MediaTile({
+  canDelete,
   media,
   previewUrl,
   isDeleting,
@@ -735,6 +747,7 @@ function MediaTile({
 }: {
   media: MediaAsset;
   previewUrl?: string;
+  canDelete: boolean;
   isDeleting: boolean;
   categories: MediaCategory[];
   onPreview: () => void;
@@ -962,6 +975,7 @@ function MediaTile({
               onClick={
                 onRemove
               }
+              hidden={!canDelete}
               disabled={
                 isDeleting
               }
@@ -984,6 +998,7 @@ function MediaTile({
 }
 
 function MediaListRow({
+  canDelete,
   media,
   previewUrl,
   isDeleting,
@@ -994,6 +1009,7 @@ function MediaListRow({
 }: {
   media: MediaAsset;
   previewUrl?: string;
+  canDelete: boolean;
   isDeleting: boolean;
   categories: MediaCategory[];
   onPreview: () => void;
@@ -1171,6 +1187,7 @@ function MediaListRow({
           onClick={
             onRemove
           }
+          hidden={!canDelete}
           disabled={
             isDeleting
           }

@@ -12,7 +12,6 @@ export default function MediaPreviewModal({ media, onClose }: { media: Media; on
     closeButton.current?.focus();
     const controller = new AbortController();
     const player = video.current;
-    setUrl(''); setError('');
     void (async () => {
       try {
         const response = await fetch(`/api/media/${media.id}/preview`, { cache: 'no-store', signal: controller.signal });

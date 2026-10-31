@@ -1,5 +1,8 @@
 ﻿export type StoreProduct = {
   creatorId?: string | null;
+  participantIds?: string[];
+  knownParticipantIds?: string[];
+  complianceStatus?: string;
   id: string; workspaceId: string; mediaAssetId: string; teaserMediaAssetId: string | null;
   thumbnailMediaAssetId: string | null; title: string; slug: string; description: string;
   priceCents: number; currency: string; category: string; featured: boolean; status: string;

@@ -1,3 +1,5 @@
+import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
+import { assertSameOrigin, AuthError, authFailure } from '@/src/lib/auth/request';
 import crypto from "node:crypto";
 import { videoMetadataSchema } from "@/src/lib/media/video-metadata";
 
@@ -58,6 +60,7 @@ export async function POST(
   request: NextRequest,
 ) {
   try {
+    assertSameOrigin(request);
     const session =
       await getCurrentSession();
 
@@ -147,11 +150,7 @@ export async function POST(
       return NextResponse.json({ success: false, error: "VIDEO_METADATA_REQUIRED", message: "The video must have a valid duration and dimensions before uploading. Refresh the page and select the file again." }, { status: 400 });
     }
 
-    const workspaceMember =
-      await db.orm.public.WorkspaceMember.where({
-        userId:
-          session.user.id,
-      }).first();
+    const { membership: workspaceMember } = await requireAdministrativeAccess();
 
     if (!workspaceMember) {
       return NextResponse.json(
@@ -431,6 +430,7 @@ export async function POST(
       folderId: folder?.id ?? null,
     });
   } catch (error) {
+    if (error instanceof AuthError) return authFailure(error);
     console.error(
       "MEDIA_MULTIPART_START_ERROR",
       error,

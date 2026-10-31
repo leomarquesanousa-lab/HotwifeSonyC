@@ -47,3 +47,6 @@ dist/
 .vinext/
 .wrangler/
 debug/
+
+# Local original: never stage this unreviewed image.
+/public/hero1_old (2).jpeg

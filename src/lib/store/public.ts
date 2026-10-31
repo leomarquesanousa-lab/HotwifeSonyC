@@ -18,6 +18,7 @@ export const getPublishedVideos = cache(async (): Promise<VideoProduct[]> => {
   const protectedIds = new Set(fullMedia.map(p => p.mediaAssetId));
   const activeWorkspaces = new Set(workspaces.filter(w => w.status === 'ACTIVE').map(w => w.id));
   return products.flatMap(product => {
+    if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) return [];
     const full = assets.get(product.mediaAssetId);
     if (!activeWorkspaces.has(product.workspaceId) || !full || full.workspaceId !== product.workspaceId || full.status !== 'UPLOADED' || full.mediaType !== 'VIDEO') return [];
     const teaser = product.teaserMediaAssetId ? assets.get(product.teaserMediaAssetId) : null;
@@ -47,6 +48,7 @@ export async function resolvePublicMedia(slug: string, kind: string) {
   const product = await db.orm.public.VideoProduct.where({ slug, status: 'PUBLISHED' })
     .where(p => p.publishedAt.lte(new Date().toISOString())).first();
   if (!product) return null;
+  if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus)) return null;
   const [workspace, full] = await Promise.all([
     db.orm.public.Workspace.where({ id: product.workspaceId, status: 'ACTIVE' }).first(),
     db.orm.public.MediaAsset.where({ id: product.mediaAssetId, workspaceId: product.workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first(),

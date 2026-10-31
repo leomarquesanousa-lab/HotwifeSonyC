@@ -89,7 +89,8 @@ export default function AppHeader({ role }: { role?: string }) {
       <header className="sticky top-0 z-50 h-[64px] border-b border-white/[0.07] bg-[#080b12]/95 backdrop-blur-xl">
         <div className="flex h-full w-full items-center px-5 lg:px-6">
           <Link
-            href={`/app`}
+            href="/"
+            aria-label="HotwifeSonyC home"
             className="flex w-auto shrink-0 items-center gap-3 lg:w-[194px]"
           >
             <img src="/logo-hotwifesonyc.png" alt="HotwifeSonyC" className="h-12 w-auto max-w-[160px] object-contain sm:max-w-[180px]"/>

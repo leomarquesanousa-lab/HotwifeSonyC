@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { withProductCreator } from '@/src/lib/store/product-creator';
 import { db } from '@/src/prisma/db';
 import { ownerPublicationContext, ComplianceError } from '@/src/lib/compliance/service';
 import { parseStoreBody, requireStoreManagementAccess, StoreError, storeFailure } from '@/src/lib/store/admin';
 
-const inputSchema = z.object({ id: z.string().uuid().optional(), mediaAssetId: z.string().uuid(), teaserMediaAssetId: z.string().uuid().nullable(), thumbnailMediaAssetId: z.string().uuid().nullable(), title: z.string().max(160), slug: z.string().max(160), description: z.string().max(5000), category: z.string().max(80) }).strict();
+const inputSchema = z.object({ id: z.string().uuid().optional(), creatorId: z.string().uuid().nullable().optional(), participantIds: z.array(z.string().uuid()).max(100).optional(), mediaAssetId: z.string().uuid(), teaserMediaAssetId: z.string().uuid().nullable(), thumbnailMediaAssetId: z.string().uuid().nullable(), title: z.string().max(160), slug: z.string().max(160), description: z.string().max(5000), category: z.string().max(80) }).strict();
 export async function POST(request: Request) {
   try {
     const access = await requireStoreManagementAccess();
@@ -14,7 +15,8 @@ export async function POST(request: Request) {
     const state = await db.transaction(async tx => {
       const existing = id ? await tx.orm.public.VideoProduct.where({ workspaceId: access.workspaceId, id }).first() : null;
       if (id && !existing) throw new StoreError('Product not found.', 404);
-      const fields = input;
+      const linked = existing ? await withProductCreator(tx, existing) : null;
+      const fields = { ...input, creatorId: input.creatorId === undefined ? linked?.creatorId : input.creatorId, participantIds: input.participantIds ?? linked?.participantIds ?? [] };
       const assets = [fields.mediaAssetId, fields.teaserMediaAssetId, fields.thumbnailMediaAssetId].filter((value): value is string => !!value);
       for (const assetId of assets) if (!await tx.orm.public.MediaAsset.where({ workspaceId: access.workspaceId, id: assetId, status: 'UPLOADED' }).first()) throw new StoreError('Wait for the media upload to finish.');
       const context = await ownerPublicationContext(tx, access.workspaceId, access.actorId, { ...fields, id, complianceStatus: existing?.complianceStatus });

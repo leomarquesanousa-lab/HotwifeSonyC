@@ -27,7 +27,7 @@
       "id": "c804420b1dee4f3eb44796fee238d389"
     }
   ],
-  "triggers": { "crons": ["* * * * *"] },
+  "triggers": { "crons": [] },
   "limits": {
     "cpu_ms": 30000
   }

@@ -1,4 +1,4 @@
-import { recordProductCreator, withProductCreator } from './product-creator';
+import { recordProductParticipants, recordProductCreator, withProductCreator } from './product-creator';
 ﻿import 'server-only';
 import { productInputSchema, resolveProductFields } from './product-fields';
 import { db } from '@/src/prisma/db';
@@ -112,8 +112,14 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     if (id && !existing) throw new StoreError('Product not found.', 404);
     const input = resolveProductFields(submitted, existing);
     if (input.creatorId && !await tx.orm.public.Performer.where({ workspaceId, id: input.creatorId, status: 'ACTIVE' }).first()) throw new StoreError('Select an active creator profile from this workspace.', 409);
+    for (const personId of input.participantIds) if (!await tx.orm.public.Performer.where({ workspaceId, id: personId, status: 'ACTIVE' }).first()) throw new StoreError('Select active participants from this workspace.', 409);
+    const participantsChanged = !!existing && JSON.stringify([...(existing.participantIds ?? [])].sort()) !== JSON.stringify([...input.participantIds].sort());
     const creatorChanged = !!existing && existing.creatorId !== input.creatorId;
     if (!input.mediaAssetId) throw new StoreError('Upload the full video before saving.');
+    if (input.status === 'PUBLISHED') {
+      if (!input.thumbnailMediaAssetId) throw new StoreError('Cover not uploaded. Add a cover before publishing.', 409);
+      if (!input.teaserMediaAssetId) throw new StoreError('Teaser not uploaded. Add a teaser before publishing.', 409);
+    }
     const duplicate = await tx.orm.public.VideoProduct.where({ slug: input.slug }).first();
     if (duplicate && duplicate.id !== id) throw new StoreError('This slug is already in use.', 409);
     const full = await tx.orm.public.MediaAsset.where({ id: input.mediaAssetId, workspaceId, status: 'UPLOADED', mediaType: 'VIDEO' }).first();
@@ -131,7 +137,7 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     }
     const unchangedLegacy = existing?.status === 'PUBLISHED' && existing.complianceStatus === 'LEGACY_UNREVIEWED' && contentFingerprint(existing) === contentFingerprint(input) && !submitted.ownerPublication;
     const direct = access.canPublishDirectly && input.status === 'PUBLISHED' && !unchangedLegacy;
-    const { creatorId, ...productFields } = input;
+    const { creatorId, participantIds, ...productFields } = input;
     const data = direct ? { ...productFields, status: 'DRAFT' } : productFields;
     if (input.status === 'PUBLISHED') {
       try { if (!direct) await assertCommercialPublication(tx, workspaceId, input, existing); }
@@ -140,8 +146,9 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     if (!id) {
       const product = await tx.orm.public.VideoProduct.create({ ...data, workspaceId, complianceStatus: 'DRAFT' });
       if (creatorId) await recordProductCreator(tx, workspaceId, product.id, access.actorId, creatorId);
+      if (participantIds.length) await recordProductParticipants(tx, workspaceId, product.id, access.actorId, participantIds);
       if (direct) {
-        try { await completeOwnerPublication(tx, workspaceId, access.actorId, { ...product, creatorId }, submitted.ownerPublication); }
+        try { await completeOwnerPublication(tx, workspaceId, access.actorId, { ...product, creatorId, participantIds, knownParticipantIds: [] }, submitted.ownerPublication); }
         catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
         await tx.orm.public.VideoProduct.where({ id: product.id, workspaceId }).updateAndCount({ status: 'PUBLISHED' });
       }
@@ -151,13 +158,14 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     }
     const changed = existing && contentFingerprint(existing) !== contentFingerprint(input);
     const blocked = existing && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(existing.complianceStatus);
-    const previousReview = changed && !blocked && !direct && !creatorChanged && existing?.complianceStatus === 'APPROVED' && mediaFingerprint(existing) === mediaFingerprint(input)
+    const previousReview = changed && !blocked && !direct && !creatorChanged && !participantsChanged && existing?.complianceStatus === 'APPROVED' && mediaFingerprint(existing) === mediaFingerprint(input)
       ? await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id, status: 'APPROVED' }).first() : null;
     const reuseReview = previousReview && previousReview.fingerprint === contentFingerprint(existing!);
     if (direct) {
       try { await completeOwnerPublication(tx, workspaceId, access.actorId, { ...existing!, ...input }, submitted.ownerPublication); }
       catch (error) { if (error instanceof ComplianceError) throw new StoreError(error.message, error.status); throw error; }
     }
+    if (participantsChanged) await recordProductParticipants(tx, workspaceId, id!, access.actorId, participantIds);
     if (creatorChanged) await recordProductCreator(tx, workspaceId, id!, access.actorId, creatorId);
     await tx.orm.public.VideoProduct.where({ id, workspaceId }).updateAndCount({ ...data, ...(direct ? { status: 'PUBLISHED' } : {}), ...(changed && !blocked && !direct && !reuseReview ? { complianceStatus: 'DRAFT' } : {}) });
     if (changed && !direct) await tx.orm.public.ContentReview.where({ workspaceId, videoProductId: id }).updateAndCount(reuseReview ? { fingerprint: contentFingerprint(input) } : { fingerprint: null, ...(blocked ? {} : { status: 'DRAFT' }) });

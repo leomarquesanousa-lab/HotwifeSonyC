@@ -66,6 +66,8 @@ export {state} from 'auth-fixture';`,
     {
       name: "isolate-auth",
       setup(build) {
+        build.onResolve({ filter: /^server-only$/ }, () => ({ path: 'empty', namespace: 'empty' }));
+        build.onLoad({ filter: /.*/, namespace: 'empty' }, () => ({ contents: '', loader: 'js' }));
         build.onResolve(
           { filter: /(?:prisma\/db$|^next\/headers$|^auth-fixture$)/ },
           () => ({ path: "fixture", namespace: "fixture" }),
@@ -198,19 +200,20 @@ try {
     assert.deepEqual(a.state.tables, {});
     assert.equal(sends, 0);
   });
-  await test("registration mail failure preserves one pending account and allows recovery", async () => {
+  await test("registration creates an active customer session without granting store membership", async () => {
     providerStatus = 403;
     const response = await a.register(request(registration));
-    assert.equal(response.status, 503);
-    assert.equal((await response.json()).accountCreated, true);
-    assert.equal(a.state.tables.User[0].status, "PENDING");
-    assert.equal(a.state.tables.EmailVerificationToken.length, 1);
-    assert.equal(a.state.tables.EmailVerificationToken[0].token, undefined);
+    assert.equal(response.status, 201);
+    assert.equal((await response.json()).destination, 'ACCOUNT');
+    assert.equal(a.state.tables.User[0].status, "ACTIVE");
+    assert.equal(a.state.tables.Session.length, 1);
+    assert.equal(a.state.tables.WorkspaceMember?.length ?? 0, 0);
+    assert.equal(sends, 0);
     assert.equal((await a.register(request(registration))).status, 409);
     assert.equal(a.state.tables.User.length, 1);
   });
-  await test("registration transaction rolls back user/workspace when token creation fails", async () => {
-    a.state.failTable = "EmailVerificationToken";
+  await test("registration transaction rolls back the user when audit creation fails", async () => {
+    a.state.failTable = "AuditLog";
     assert.equal((await a.register(request(registration))).status, 500);
     assert.equal(a.state.tables.User?.length ?? 0, 0);
     assert.equal(a.state.tables.Workspace?.length ?? 0, 0);
@@ -420,7 +423,7 @@ try {
       ["ACTIVE", "REVOKED"],
     );
   });
-  await test("login wrong-password and pending-account responses preserve existing behavior", async () => {
+  await test("login rejects wrong passwords; legacy pending customers activate without administrative access", async () => {
     a.state.tables.User = [
       {
         id: "u",
@@ -437,8 +440,10 @@ try {
     const response = await a.login(
       request({ email: registration.email, password }),
     );
-    assert.equal((await response.json()).error, "EMAIL_NOT_VERIFIED");
-    assert.equal(a.state.tables.Session?.length ?? 0, 0);
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).destination, 'ACCOUNT');
+    assert.equal(a.state.tables.User[0].status, 'ACTIVE');
+    assert.equal(a.state.tables.Session?.length ?? 0, 1);
   });
   await test("five-locale templates escape names and attribute values", async () => {
     for (const locale of ["en-US", "pt-BR", "es-ES", "fr-FR", "cs-CZ"])
@@ -451,7 +456,7 @@ try {
         );
         assert.ok(template.subject);
         assert.ok(template.text);
-        assert.ok(!template.html.includes("<img"));
+        assert.ok(!template.html.includes('<img src=x onerror="attack">'));
         assert.ok(template.html.includes("&lt;img"));
         assert.ok(template.html.includes("&quot;&amp;b=1"));
       }

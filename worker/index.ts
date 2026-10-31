@@ -1,4 +1,3 @@
-import { runDueManyVidsPublications } from "../src/lib/distribution/manyvids-scheduling";
 import {
   withEmailEnvironment,
   type EmailEnvironment,
@@ -15,16 +14,9 @@ type VinextEnv = NonNullable<Parameters<typeof handler.fetch>[1]> & {
 type VinextExecutionContext = NonNullable<Parameters<typeof handler.fetch>[2]>;
 
 const worker = {
-  async scheduled(_controller: unknown, env: VinextEnv) {
-    if (!env.DATABASE_URL) throw new Error("DATABASE_URL_MISSING");
-    const database = createDatabase(env.DATABASE_URL);
-    try {
-      await runWithRequestDatabase(database, () =>
-        runDueManyVidsPublications(),
-      );
-    } finally {
-      await database.close();
-    }
+  async scheduled() {
+    // Release safety: legacy remote triggers must not publish queued content.
+    // Restoring automatic publication requires a separate authorized change.
   },
   async fetch(
     request: Request,
