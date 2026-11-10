@@ -43,7 +43,7 @@ const server=createServer(async(req,res)=>{try{
  if(url.pathname==='/api/media/multipart/complete'){
   const upload=uploads.get(data.mediaId);assert.equal(upload.bytes.length,upload.fileSize);assert.equal(data.parts.length,1);
   await api.db.orm.public.MediaAsset.where({id:data.mediaId}).updateAndCount({status:'UPLOADED'});
-  await api.db.orm.public.MediaAssetPerformer.create({workspaceId:workspace,mediaAssetId:data.mediaId,performerId:person});json({success:true});return;
+  json({success:true});return;
  }
  const request=new Request('http://127.0.0.1:'+server.address().port+url.pathname,{method:req.method,headers:req.headers,body:req.method==='GET'?undefined:body});
  let response;
@@ -57,51 +57,34 @@ const server=createServer(async(req,res)=>{try{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;let browser;const blocked=[];const browserErrors=[];
 try{
  browser=await chromium.launch({headless:true});const context=await browser.newContext();
- await context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin!==origin){blocked.push(url.origin);return route.abort();}return route.continue();});
+ await context.route('**/*',route=>{if(new URL(route.request().url()).origin!==origin){blocked.push(route.request().url());return route.abort();}return route.continue();});
  const page=await context.newPage();page.on('pageerror',error=>browserErrors.push(error.message));await page.goto(origin);
- await page.getByRole('button',{name:'New Video',exact:true}).click();
- assert.equal(await page.getByLabel('Creator',{exact:true}).inputValue(),person);await page.getByText('Creator identity: Verified.',{exact:true}).waitFor();
- const title='Vídeo fictício - teste local';await page.getByLabel('Title',{exact:true}).fill(title);await page.getByLabel('Description',{exact:true}).fill('Produto fictício com mídia sintética, sem conteúdo adulto.');await page.getByLabel('Price (USD)',{exact:true}).fill('12.34');await page.getByLabel('Category',{exact:true}).selectOption('Original');
- assert.equal(await page.getByLabel('Slug',{exact:true}).inputValue(),'video-ficticio-teste-local');
- for(const [label,name,type] of [['Full Video','full.mp4','video/mp4'],['Teaser','teaser.mp4','video/mp4'],['Cover Image','cover.png','image/png']]){
-  await page.getByLabel(label,{exact:true}).setInputFiles({name,mimeType:type,buffer:Buffer.from('synthetic-test-bytes:'+name)});
-  await page.getByRole('button',{name:'Save Draft',exact:true}).waitFor({state:'visible'});await page.waitForFunction(()=>!document.querySelector('fieldset').disabled);
+ async function uploadSet(suffix=''){
+  for(const [label,name,type] of [['Full Video','full'+suffix+'.mp4','video/mp4'],['Teaser','teaser'+suffix+'.mp4','video/mp4'],['Cover Image','cover'+suffix+'.png','image/png']]){
+   await page.getByLabel(label,{exact:true}).setInputFiles({name,mimeType:type,buffer:Buffer.from('synthetic-only:'+name)});await page.waitForFunction(()=>!document.querySelector('fieldset').disabled);
+  }
  }
- assert.equal(uploads.size,3);assert.equal(api.state.tables.MediaAsset.filter(m=>m.status==='UPLOADED').length,3);console.log('PASS: title, generated slug, description, category, price and three multipart uploads using real UploadManager with local storage mocks.');
- await page.getByRole('button',{name:'Save Draft',exact:true}).click();await page.getByRole('status').filter({hasText:/Draft saved.|Published in the catalog|Unpublished/}).waitFor();
- let product=(await(await api.list()).json()).products[0];assert.equal(product.creatorId,person);assert.equal(product.status,'DRAFT');assert.equal(product.priceCents,1234);assert.equal(new Set([product.mediaAssetId,product.teaserMediaAssetId,product.thumbnailMediaAssetId]).size,3);for(const [field,name] of [['mediaAssetId','full.mp4'],['teaserMediaAssetId','teaser.mp4'],['thumbnailMediaAssetId','cover.png']])assert.equal(api.state.tables.MediaAsset.find(m=>m.id===product[field]).originalFileName,name);assert.equal((await api.getPublishedVideos()).length,0);
- await page.reload();await page.getByRole('button',{name:'Edit',exact:true}).click();assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),title);assert.equal(await page.getByLabel('Price (USD)',{exact:true}).inputValue(),'12.34');assert.equal(await page.getByLabel('Creator',{exact:true}).inputValue(),person);console.log('PASS: Creator selection retained after API save and browser reload.');console.log('PASS: Save Draft, API persistence in isolated memory, correct media associations, reload and recovery for editing.');
- // Assert absence in the real rendered form, including every replacement introduced previously.
- for(const text of ['Complete legal checks here for direct publication','Publication compliance','Missing recording date','Missing consent evidence reference','By clicking Publish, I confirm','Depicted participants']) assert.equal(await page.getByText(text,{exact:false}).count(),0);
- assert.equal(await page.getByLabel('Featured on the storefront',{exact:true}).count(),1); // Featured only.
- assert.equal(await page.getByLabel('Status',{exact:true}).count(),0);
- assert.equal(await page.locator('details').getAttribute('open'),null);
- assert.equal(await page.getByRole('group',{name:'Participants',exact:true}).count(),1);
- const callsBefore=requests.filter(r=>r.path==='/api/store/products/compliance').length;
- await page.getByRole('button',{name:'Publish for Sale',exact:true}).first().click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();
- assert.match(await page.getByRole('alert').textContent(),/recording date.*content-specific consent.*distribution rights/);
- assert.equal(api.state.tables.VideoProduct[0].status,'DRAFT');assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),title);
- assert.equal(api.state.tables.ContentConsent?.length??0,0);
- console.log('PASS: legal section and replacement questionnaire absent; incomplete Publish rejected by real backend with specific pending records; form retained.');
- // Exercise the actual approval API with synthetic evidence, rather than
- // directly inserting an approved review into the test database.
- product=(await(await api.list()).json()).products[0];
- const reviewCard=page.getByRole('article',{name:'Video approval: '+title,exact:true});await reviewCard.waitFor();await reviewCard.getByLabel('Recording date',{exact:true}).fill('2025-01-01');assert.equal(await reviewCard.getByLabel('Signed consent covering this video',{exact:true}).inputValue(),'document:'+id(32));await reviewCard.getByLabel(/I reviewed the full video/).check();await reviewCard.getByRole('button',{name:'Approve and Publish',exact:true}).click();await page.getByRole('status').filter({hasText:'Published in the catalog.'}).waitFor();
- assert(requests.some(r=>r.path==='/api/admin/compliance'&&r.method==='POST'));console.log('PASS: actual inline review form -> approval API -> publication API -> gallery, with synthetic evidence and no navigation to another screen.');
- product=api.state.tables.VideoProduct[0];assert.equal(product.status,'PUBLISHED');assert.equal(product.complianceStatus,'APPROVED');assert.equal(api.state.tables.ContentConsent.length,1);
- const catalog=await api.getPublishedVideos();assert.equal(catalog.length,1);assert.equal(await api.resolvePublicMedia(product.slug,'full'),null);
- await page.reload();await page.getByRole('button',{name:'Edit',exact:true}).click();await page.getByLabel('Title',{exact:true}).fill(title+' revised');
- await page.getByRole('button',{name:'Save Draft',exact:true}).click();await page.getByRole('status').filter({hasText:/Draft saved.|Published in the catalog|Unpublished/}).waitFor();
- await page.getByRole('button',{name:'Edit',exact:true}).click();await page.getByRole('button',{name:'Publish for Sale',exact:true}).first().click();await page.getByRole('status').filter({hasText:/Draft saved.|Published in the catalog|Unpublished/}).waitFor();assert.equal(api.state.tables.ContentConsent.length,1);
- assert.equal(requests.filter(r=>r.path==='/api/store/products/compliance').length,callsBefore);console.log('PASS: Publish reuses valid backend records, metadata edit -> Draft -> Publish requires no repeated intake and no automatic compliance requests.');
- await page.getByRole('button',{name:'Unpublish',exact:true}).click();await page.getByRole('status').filter({hasText:'Unpublished.'}).waitFor();assert.equal((await api.getPublishedVideos()).length,0);
- await page.getByRole('button',{name:'Publish',exact:true}).click();await page.getByRole('status').filter({hasText:'Published in the catalog.'}).waitFor();assert.equal((await api.getPublishedVideos()).length,1);assert.equal(api.state.tables.ContentConsent.length,1);
- console.log('PASS: one-click gallery Unpublish/Publish preserves review, consent and existing product.');
- await page.goto(origin+'/videos');await page.getByRole('heading',{name:title+' revised',exact:true}).waitFor();assert.equal(await page.getByRole('link',{name:'View details for '+title+' revised'}).getAttribute('href'),'/videos/'+product.slug);assert.equal(await page.getByAltText('Artwork for '+title+' revised').getAttribute('src'),catalog[0].thumbnail);console.log('PASS: actual storefront VideoCard renders the published product using the real catalog service.');
- await page.goto(origin);await page.getByRole('button',{name:'New Video',exact:true}).click();await page.getByLabel('Creator',{exact:true}).selectOption(person);await page.getByLabel('Title',{exact:true}).fill('Second synthetic video');await page.getByLabel('Description',{exact:true}).fill('Synthetic follow-up');await page.getByLabel('Price (USD)',{exact:true}).fill('5.99');await page.getByLabel('Category',{exact:true}).selectOption('Original');
- for(const [label,name,type] of [['Full Video','full2.mp4','video/mp4'],['Teaser','teaser2.mp4','video/mp4'],['Cover Image','cover2.jpg','image/jpeg']]){await page.getByLabel(label,{exact:true}).setInputFiles({name,mimeType:type,buffer:Buffer.from('synthetic:'+name)});await page.waitForFunction(()=>!document.querySelector('fieldset').disabled);}
- await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();assert.equal(api.state.tables.VideoProduct.length,2);assert.equal(api.state.tables.VideoProduct.filter(p=>p.status==='DRAFT').length,1);assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),'Second synthetic video');
- await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();assert.equal(api.state.tables.VideoProduct.length,2);assert.equal(api.state.tables.ContentConsent.length,1);
- console.log('PASS: one Publish click on a new video saves a recoverable draft automatically; missing content-specific consent blocks publication, preserves input and retries do not duplicate products or fabricate consent.');
- assert.deepEqual(blocked,[]);assert.deepEqual(browserErrors,[]);assert.equal([...uploads.values()].reduce((n,u)=>n+u.bytes.length,0),[...uploads.values()].reduce((n,u)=>n+u.fileSize,0));console.log('PASS: no browser runtime errors; all requests stayed on loopback; production DB/storage imports blocked; no R2 upload.');
+ async function assertOperationalOnly(){
+  for(const label of ['Creator','Creator profile','Date of birth','Recording date','Description','Category','Slug','Protected identity evidence reference','Protected consent reference'])assert.equal(await page.getByLabel(label,{exact:true}).count(),0,label);
+  assert.equal(await page.locator('form').count(),1);assert.equal(await page.getByRole('button',{name:'Save Draft',exact:true}).count(),0);assert.equal(await page.getByRole('form',{name:'Publication requirements'}).count(),0);
+ }
+ await page.getByRole('button',{name:'New Video',exact:true}).click();await assertOperationalOnly();assert.equal(await page.getByRole('button',{name:'Publish for Sale',exact:true}).isDisabled(),true);
+ await uploadSet();assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),'full');await page.getByLabel('Title',{exact:true}).fill('Synthetic direct publication');await page.getByLabel('Price (USD)',{exact:true}).fill('9.99');
+ assert.equal(uploads.size,3);assert([...uploads.values()].every(item=>!item.productCreatorId));assert.equal(await page.getByRole('button',{name:'Publish for Sale',exact:true}).isEnabled(),true);
+ await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();assert.match(await page.getByRole('alert').textContent(),/recording date.*identified depicted participants/);await assertOperationalOnly();
+ let product=(await(await api.list()).json()).products[0];assert.equal(product.status,'DRAFT');assert.equal(product.creatorId,null);assert.equal(product.priceCents,999);assert.equal(api.state.tables.ContentConsent?.length??0,0);assert.equal(api.state.tables.ContentReview?.length??0,0);assert.equal(await page.getByLabel('Price (USD)',{exact:true}).inputValue(),'9.99');
+ console.log('PASS: select/upload three synthetic files -> title/price -> Publish; missing proof blocks precisely and preserves the automatically saved draft, without actor/creator/document forms.');
+ // Isolated administrative registry supplies explicitly reviewed test evidence.
+ // This call is separate from the video editor and never touches production.
+ const approval=await api.approve(new Request(origin+'/api/admin/compliance',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({action:'publicationReview',productId:product.id,recordedOn:'2025-01-01',reviewed:true,rightsEvidenceRef:'document:'+id(32),people:[{performerId:person,consentEvidenceRef:'document:'+id(32)}]})}));assert.equal(approval.status,200,await approval.text());
+ const evidence=structuredClone({identities:api.state.tables.ComplianceIdentity,consents:api.state.tables.ContentConsent,documents:api.state.tables.PerformerDocument,reviews:api.state.tables.ContentReview});
+ await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('status').filter({hasText:'Published in the catalog.'}).waitFor();product=api.state.tables.VideoProduct[0];assert.equal(product.status,'PUBLISHED');assert.equal(product.priceCents,999);assert.equal((await api.getPublishedVideos()).length,1);assert.equal(await api.resolvePublicMedia(product.slug,'full'),null);await page.getByText('PUBLISHED',{exact:true}).waitFor();
+ assert.deepEqual({identities:api.state.tables.ComplianceIdentity,consents:api.state.tables.ContentConsent,documents:api.state.tables.PerformerDocument,reviews:api.state.tables.ContentReview},evidence);
+ await page.reload();await page.getByRole('button',{name:'Edit',exact:true}).click();await assertOperationalOnly();await page.getByLabel('Price (USD)',{exact:true}).fill('10.99');await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('status').filter({hasText:'Published in the catalog.'}).waitFor();assert.equal(api.state.tables.VideoProduct[0].priceCents,1099);
+ assert.deepEqual({identities:api.state.tables.ComplianceIdentity,consents:api.state.tables.ContentConsent,documents:api.state.tables.PerformerDocument,reviews:api.state.tables.ContentReview},evidence);
+ console.log('PASS: evidence already associated -> direct Publish at USD 9.99 -> API persisted state -> gallery/catalog; reload and price change publish without new approval, consent or documents.');
+ await page.goto(origin+'/videos');await page.getByRole('heading',{name:product.title,exact:true}).waitFor();assert.equal(await page.getByRole('link',{name:'View details for '+product.title}).getAttribute('href'),'/videos/'+product.slug);
+ await page.goto(origin);await page.getByRole('button',{name:'New Video',exact:true}).click();await uploadSet('2');await page.getByLabel('Price (USD)',{exact:true}).fill('5.99');await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();await page.getByRole('button',{name:'Publish for Sale',exact:true}).click();await page.getByRole('alert').filter({hasText:'Publication pending:'}).waitFor();assert.equal(api.state.tables.VideoProduct.length,2);assert.equal(api.state.tables.VideoProduct.filter(item=>item.status==='DRAFT').length,1);assert.equal(api.state.tables.VideoProduct[0].status,'PUBLISHED');assert.equal(api.state.tables.ContentConsent.length,1);
+ assert.equal(requests.filter(item=>item.path==='/api/admin/compliance'||item.path==='/api/store/products/compliance').length,0);assert.deepEqual(blocked,[]);assert.deepEqual(browserErrors,[]);
+ console.log('PASS: a second unproven upload remains blocked; retries do not duplicate drafts or modify the first video; editor makes zero compliance API calls. All browser requests stayed on loopback; DB/storage simulated.');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

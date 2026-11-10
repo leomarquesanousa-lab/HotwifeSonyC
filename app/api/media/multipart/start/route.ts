@@ -1,7 +1,6 @@
 import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
 import { assertSameOrigin, AuthError, authFailure } from '@/src/lib/auth/request';
 import crypto from "node:crypto";
-import { primaryCreatorId } from '@/src/lib/store/product-creator';
 import { videoMetadataSchema } from "@/src/lib/media/video-metadata";
 
 import {
@@ -230,7 +229,7 @@ export async function POST(
     }
 
     const productCreatorId = body.source === 'STORE_PRODUCT'
-      ? body.productCreatorId || await primaryCreatorId(db, workspaceMember.workspaceId) : null;
+      ? body.productCreatorId || null : null;
     if (productCreatorId && !await db.orm.public.Performer.where({ id: productCreatorId, workspaceId: workspaceMember.workspaceId, status: 'ACTIVE' }).first()) {
       return NextResponse.json({ success: false, error: 'CREATOR_NOT_FOUND', message: 'Select an active creator from this workspace before uploading.' }, { status: 409 });
     }

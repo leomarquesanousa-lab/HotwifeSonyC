@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import CreatorVerification from '@/components/compliance/CreatorVerification';
 import { complianceDashboard, ComplianceError, type ComplianceDashboard } from '@/src/lib/compliance/service';
 import { AuthError } from '@/src/lib/auth/request';
-export const metadata = { title: 'Creator Verification | HotwifeSonyC', robots: { index: false, follow: false } };
+export const metadata = { title: 'Documentation | HotwifeSonyC', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 export default async function Page() {
   let data: ComplianceDashboard;

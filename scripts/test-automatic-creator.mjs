@@ -14,13 +14,13 @@ const mod=new Module(root+'/scripts/automatic-creator.memory.cjs');mod.filename=
 const id=n=>`88888888-8888-4888-8888-${String(n).padStart(12,'0')}`;
 const workspace=id(1),owner=id(2),person=id(3),other=id(4),full=id(5),teaser=id(6),cover=id(7),release=id(8),distribution=id(9);
 function reset(){a.state.userId=owner;a.state.tables={Workspace:[{id:workspace,status:'ACTIVE'}],WorkspaceMember:[{workspaceId:workspace,userId:owner,role:'OWNER'}],User:[{id:owner,status:'ACTIVE'}],Creator:[{id:distribution,workspaceId:workspace,status:'ACTIVE'}],Performer:[{id:other,workspaceId:workspace,status:'ACTIVE',displayName:'Additional fictional person'},{id:person,workspaceId:workspace,status:'ACTIVE',displayName:'Primary fictional creator'}],ComplianceNote:[{id:id(10),workspaceId:workspace,objectType:'CREATOR_LINK',objectId:owner,body:JSON.stringify({performerId:person,samePersonReviewed:true}),createdAt:'2025-01-01'}],ComplianceIdentity:[['USER',owner],['PERFORMER',person]].map(([subjectType,subjectId])=>({workspaceId:workspace,subjectType,subjectId,status:'VERIFIED',dateOfBirth:'1990-01-01',evidenceRef:'test-vault:identity',createdAt:'2025-01-01'})),PerformerDocument:[{id:release,workspaceId:workspace,performerId:person,documentType:'RELEASE_FORM',status:'ACTIVE',expiresAt:null,title:'Synthetic consent and rights'}],MediaAsset:[full,teaser,cover].map((id,i)=>({id,workspaceId:workspace,status:'UPLOADED',mediaType:i===2?'IMAGE':'VIDEO',contentType:i===2?'image/png':'video/mp4',objectKey:'synthetic/'+i})),MediaAssetPerformer:[],VideoProduct:[],ContentReview:[],ContentConsent:[],AuditLog:[]};}
-const input={mediaAssetId:full,teaserMediaAssetId:teaser,thumbnailMediaAssetId:cover,title:'Synthetic video',slug:'synthetic-video',description:'Fictional test only',category:'Original',priceCents:100,currency:'USD',featured:false,status:'DRAFT'};
+const input={creatorId:person,mediaAssetId:full,teaserMediaAssetId:teaser,thumbnailMediaAssetId:cover,title:'Synthetic video',slug:'synthetic-video',description:'Fictional test only',category:'Original',priceCents:100,currency:'USD',featured:false,status:'DRAFT'};
 const evidence=productId=>({action:'creatorReview',productId,recordedOn:'2025-01-01',consentEvidenceRef:'document:'+release,rightsEvidenceRef:'document:'+release,reviewed:true});
 reset();
 const originals=structuredClone({identities:a.state.tables.ComplianceIdentity,documents:a.state.tables.PerformerDocument});
 const choices=await a.listStorePerformers(workspace);assert.equal(choices.find(p=>p.isPrimary).id,person);assert.equal(choices.find(p=>p.isPrimary).verificationStatus,'Verified');
 const upload=await a.start(new Request('https://example.test/api/media/multipart/start',{method:'POST',headers:{Origin:'https://example.test','Content-Type':'application/json'},body:JSON.stringify({fileName:'synthetic.mp4',contentType:'video/mp4',fileSize:10,videoMetadata:{durationSeconds:1,width:16,height:16},source:'STORE_PRODUCT'})}));
-assert.equal(upload.status,200);const uploaded=await upload.json();assert.equal(uploaded.performerId,person);assert(a.state.tables.MediaAssetPerformer.some(m=>m.mediaAssetId===uploaded.mediaId&&m.performerId===person));
+assert.equal(upload.status,200);const uploaded=await upload.json();assert.equal(uploaded.performerId,null);assert.equal(a.state.tables.MediaAssetPerformer.length,0);
 const startAs=productCreatorId=>a.start(new Request('https://example.test/api/media/multipart/start',{method:'POST',headers:{Origin:'https://example.test','Content-Type':'application/json'},body:JSON.stringify({fileName:'synthetic-second.mp4',contentType:'video/mp4',fileSize:10,videoMetadata:{durationSeconds:1,width:16,height:16},source:'STORE_PRODUCT',productCreatorId})}));
 assert.equal((await (await startAs(other)).json()).performerId,other);assert.equal((await startAs(id(99))).status,409);
 let product=await a.saveStoreProduct(workspace,input);assert.equal(product.creatorId,person);assert(a.state.tables.ComplianceNote.some(n=>n.objectType==='PRODUCT_CREATOR'&&n.objectId===product.id));
@@ -33,7 +33,7 @@ product=await a.saveStoreProduct(workspace,{...input,status:'PUBLISHED'},product
 const counts=[a.state.tables.ContentConsent.length,a.state.tables.ContentReview.length];
 await a.complianceAction(evidence(product.id));await a.saveStoreProduct(workspace,{...input,status:'PUBLISHED'},product.id);assert.deepEqual([a.state.tables.ContentConsent.length,a.state.tables.ContentReview.length],counts);
 assert.deepEqual(a.state.tables.ComplianceIdentity,originals.identities);assert.deepEqual(a.state.tables.PerformerDocument,originals.documents);
-console.log('PASS 1: primary creator selected among multiple profiles, upload linked, draft audit association saved, documents suggested without authorization, explicit real review -> publication; retries reuse records and documents.');
+console.log('PASS 1: optional explicit creator preserved, upload does not assign the primary creator, draft audit association saved, documents suggested without authorization, explicit real review -> publication; retries reuse records and documents.');
 reset();product=await a.saveStoreProduct(workspace,{...input,participantIds:[other]});
 await assert.rejects(()=>a.complianceAction(evidence(product.id)),/other participants.*identity, adult age and content-specific consent/);
 await assert.rejects(()=>a.saveStoreProduct(workspace,{...input,participantIds:[other],status:'PUBLISHED'},product.id),/identity|verification/i);assert.equal(a.state.tables.VideoProduct[0].status,'DRAFT');assert.equal(a.state.tables.ContentConsent.length,0);
@@ -48,5 +48,36 @@ await assert.rejects(()=>a.saveStoreProduct(workspace,{...input,status:'PUBLISHE
 assert.equal(a.state.tables.VideoProduct[0].status,'DRAFT');
 console.log('PASS 4: saved consent/rights without content approval does not publish.');
 reset();a.state.tables.ComplianceNote[0].body=JSON.stringify({performerId:person,samePersonReviewed:false});
-assert.equal((await a.saveStoreProduct(workspace,input)).creatorId,null);
+assert.equal((await a.saveStoreProduct(workspace,{...input,creatorId:undefined})).creatorId,null);
 console.log('PASS: an unreviewed link does not identify a primary creator; no production database, R2 objects or real videos accessed.');
+
+// New direct flow: no creator link/profile, no separate participant screen.
+const {creatorId:ignoredCreator,...withoutCreator}=input;void ignoredCreator;
+reset();a.state.tables.ComplianceNote=[];a.state.tables.Performer=[];a.state.tables.PerformerDocument=[];a.state.tables.ComplianceIdentity=a.state.tables.ComplianceIdentity.filter(row=>row.subjectType==='USER');
+product=await a.saveStoreProduct(workspace,withoutCreator);assert.equal(product.creatorId,null);assert.equal(a.state.tables.Performer.length,0);
+const direct={action:'publicationReview',productId:product.id,recordedOn:'2025-01-01',reviewed:true,rightsEvidenceRef:'test-vault:distribution',people:[{displayName:'Synthetic depicted person',identity:{dateOfBirth:'1990-01-01',evidenceRef:'test-vault:actual-reviewed-identity',expiresAt:null,reviewed:true},consentEvidenceRef:'test-vault:specific-consent'}]};
+await assert.rejects(()=>a.complianceAction({...direct,reviewed:false}));assert.equal(a.state.tables.Performer.length,0);
+await assert.rejects(()=>a.complianceAction({...direct,people:[]}));assert.equal(a.state.tables.ContentReview.length,0);
+await assert.rejects(()=>a.complianceAction({...direct,people:[{displayName:'Synthetic depicted person'}]}),/name, birth date and reviewed identity/);assert.equal(a.state.tables.Performer.length,0);
+await assert.rejects(()=>a.complianceAction({...direct,people:[{...direct.people[0],identity:{...direct.people[0].identity,reviewed:false}}]}));assert.equal(a.state.tables.Performer.length,0);
+await a.complianceAction(direct);assert.equal(a.state.tables.Performer.length,1);assert.equal(a.state.tables.ContentReview[0].status,'APPROVED');assert.equal(a.state.tables.PerformerDocument.length,0);assert.equal(a.state.tables.ComplianceNote.some(note=>['CREATOR_LINK','PRODUCT_CREATOR'].includes(note.objectType)),false);
+product=await a.saveStoreProduct(workspace,{...withoutCreator,status:'PUBLISHED'},product.id);assert.equal(product.status,'PUBLISHED');assert.equal(product.creatorId,null);
+const preserved=structuredClone({identities:a.state.tables.ComplianceIdentity,consents:a.state.tables.ContentConsent,review:a.state.tables.ContentReview});
+await a.saveStoreProduct(workspace,withoutCreator,product.id);await a.saveStoreProduct(workspace,{...withoutCreator,status:'PUBLISHED'},product.id);
+assert.deepEqual({identities:a.state.tables.ComplianceIdentity,consents:a.state.tables.ContentConsent,review:a.state.tables.ContentReview},preserved);
+console.log('PASS: no creator/OWNER link or pre-registered actor required; missing identity evidence recorded in the isolated administrative registry only after explicit review; real publication service accepts valid evidence and reuses it without new documents/consents.');
+
+reset();a.state.tables.ComplianceNote=[];product=await a.saveStoreProduct(workspace,withoutCreator);
+const knownReview={action:'publicationReview',productId:product.id,recordedOn:'2025-01-01',reviewed:true,rightsEvidenceRef:'document:'+release,people:[{performerId:person,consentEvidenceRef:'document:'+release}]};
+await assert.rejects(()=>a.complianceAction({...knownReview,people:[...knownReview.people,{performerId:other}]}),/Additional fictional person.*identity|Additional fictional person.*verification/i);
+assert.equal(a.state.tables.ContentConsent.length,0);assert.equal(a.state.tables.ContentReview.length,0);
+await a.complianceAction(knownReview);assert.equal(a.state.tables.ComplianceIdentity.length,2);assert.equal(a.state.tables.PerformerDocument.length,1);
+await assert.rejects(()=>a.complianceAction({...knownReview,people:[],rightsEvidenceRef:undefined,recordedOn:'1980-01-01'}),/adult age/);assert.equal(a.state.tables.ContentReview[0].recordedOn,'2025-01-01');
+a.state.tables.ContentConsent[0].status='REVOKED';await assert.rejects(()=>a.complianceAction(knownReview),/revoked/);assert.equal(a.state.tables.ContentConsent[0].status,'REVOKED');
+console.log('PASS: existing identity/documents reused without a primary creator link; undocumented additional people, underage recording and revoked consent blocked transactionally.');
+reset();a.state.tables.WorkspaceMember[0].role='ADMIN';a.state.tables.ComplianceNote=[];product=await a.saveStoreProduct(workspace,withoutCreator);
+await a.complianceAction({...knownReview,productId:product.id});product=await a.saveStoreProduct(workspace,{...withoutCreator,status:'PUBLISHED'},product.id);assert.equal(product.status,'PUBLISHED');assert.equal(product.creatorId,null);
+console.log('PASS: ADMIN can review and publish with valid evidence without a primary creator or a sole OWNER account.');
+let readiness=(await a.complianceDashboard()).videoApprovals.find(video=>video.id===product.id);assert.equal(readiness.publicationReady,true);assert.deepEqual(readiness.publicationIssues,[]);
+a.state.tables.PerformerDocument[0].expiresAt='2020-01-01T00:00:00.000Z';readiness=(await a.complianceDashboard()).videoApprovals.find(video=>video.id===product.id);assert.equal(readiness.publicationReady,false);assert(readiness.publicationIssues.some(issue=>/expired/.test(issue)));await assert.rejects(()=>a.saveStoreProduct(workspace,{...withoutCreator,status:'PUBLISHED'},product.id),/expired/);
+console.log('PASS: applicable verified records report ready without another approval; expired evidence identifies the exact blocker and still prevents publication.');
