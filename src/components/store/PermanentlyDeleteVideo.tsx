@@ -6,13 +6,16 @@ export default function PermanentlyDeleteVideo({ product, disabled, onDeleted }:
   const [eligible, setEligible] = useState(false);
   const [reason, setReason] = useState('');
   const [open, setOpen] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
     fetch(`/api/store/products/${encodeURIComponent(product.id)}`, { cache: 'no-store', signal: controller.signal })
-      .then(async response => { const data = await response.json(); if (response.ok && !controller.signal.aborted) { setEligible(data.permanentDeletionAllowed === true); setReason(typeof data.permanentDeletionReason === 'string' ? data.permanentDeletionReason : ''); } })
-      .catch(() => {});
+      .then(async response => { const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Unable to check deletion permissions.'); if (!controller.signal.aborted) { setEligible(data.permanentDeletionAllowed === true); setReason(typeof data.permanentDeletionReason === 'string' ? data.permanentDeletionReason : ''); setPreviewError(''); } })
+      .catch(error => { if (!controller.signal.aborted) { setEligible(false); setPreviewError(error instanceof Error ? error.message : 'Unable to check deletion permissions.'); } });
     return () => controller.abort();
-  }, [product.id, product.updatedAt]);
+  }, [product.id, product.updatedAt, attempt]);
+  if (previewError) return <div role="alert" className="max-w-xs text-xs text-rose-200">{previewError}<button type="button" disabled={disabled} onClick={() => { setPreviewError(''); setAttempt(value => value + 1); }} className="ml-2 min-h-11 underline">Retry deletion check</button></div>;
   return <>{reason && <p className="max-w-xs text-xs text-white/55">{reason}</p>}{eligible && <button type="button" disabled={disabled} onClick={() => setOpen(true)} className="min-h-11 cursor-pointer rounded-lg border border-rose-400/20 px-4 py-2 text-sm text-rose-300 hover:bg-rose-400/10 focus-visible:outline-2 focus-visible:outline-rose-300 disabled:opacity-50">Delete Permanently</button>}{open && <PermanentDeleteDialog product={product} onClose={() => setOpen(false)} onDeleted={onDeleted}/>}</>;
 }
 

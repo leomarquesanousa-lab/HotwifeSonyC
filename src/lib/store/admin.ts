@@ -1,11 +1,12 @@
-import { recordProductParticipants, recordProductCreator, withProductCreator } from './product-creator';
+import { primaryCreatorId, recordProductParticipants, recordProductCreator, withProductCreator } from './product-creator';
 ﻿import 'server-only';
 import { productInputSchema, resolveProductFields } from './product-fields';
 import { db } from '@/src/prisma/db';
 import { getCurrentSession } from '@/src/lib/auth/session';
+import { getAdministrativeMembership } from '@/src/lib/auth/admin-access';
 import { assertSameOrigin, AuthError } from '@/src/lib/auth/request';
 import type { StoreProduct } from './types';
-import { assertCommercialPublication, completeOwnerPublication, contentFingerprint, mediaFingerprint, ComplianceError } from '@/src/lib/compliance/service';
+import { assertCommercialPublication, completeOwnerPublication, contentFingerprint, mediaFingerprint, ComplianceError, primaryCreatorVerification } from '@/src/lib/compliance/service';
 
 function serializeProduct(product: StoreProduct): StoreProduct {
   return { ...product, createdAt: new Date(product.createdAt).toISOString(), updatedAt: new Date(product.updatedAt).toISOString(), publishedAt: product.publishedAt ? new Date(product.publishedAt).toISOString() : null };
@@ -17,10 +18,9 @@ export class StoreError extends Error {
 export async function requireStoreManagementAccess() {
   const auth = await getCurrentSession();
   if (!auth) throw new StoreError('Sign in to manage your store.', 401);
-  const member = await db.orm.public.WorkspaceMember.where({ userId: auth.user.id }).first();
-  if (!member || !['OWNER', 'ADMIN', 'OPERATOR'].includes(member.role)) throw new StoreError('You do not have permission to manage this store.', 403);
-  const workspace = await db.orm.public.Workspace.where({ id: member.workspaceId, status: 'ACTIVE' }).first();
-  if (!workspace) throw new StoreError('This workspace is unavailable.', 403);
+  const administrative = await getAdministrativeMembership(auth.user.id);
+  if (!administrative) throw new StoreError('You do not have permission to manage this store in an active workspace.', 403);
+  const { membership: member } = administrative;
   return { workspaceId: member.workspaceId, actorId: auth.user.id, canDelete: ['OWNER', 'ADMIN'].includes(member.role), canPublishDirectly: member.role === 'OWNER' };
 }
 export async function requireStoreAccess() { return (await requireStoreManagementAccess()).workspaceId; }
@@ -91,7 +91,9 @@ export async function listStoreProducts(workspaceId: string) {
   return Promise.all(products.map(async product => serializeProduct(await withProductCreator(db, product))));
 }
 export async function listStorePerformers(workspaceId: string) {
-  return db.orm.public.Performer.where({ workspaceId, status: 'ACTIVE' }).select('id', 'displayName').all();
+  const people = await db.orm.public.Performer.where({ workspaceId, status: 'ACTIVE' }).select('id', 'displayName').all();
+  const primary = await primaryCreatorVerification(db, workspaceId);
+  return people.map(person => ({ ...person, isPrimary: person.id === primary.id, ...(person.id === primary.id ? { verificationStatus: primary.status, verificationPending: primary.missing } : {}) }));
 }
 export async function saveStoreProduct(workspaceId: string, value: unknown, id?: string) {
   const access = await requireStoreManagementAccess();
@@ -111,6 +113,9 @@ export async function saveStoreProduct(workspaceId: string, value: unknown, id?:
     const existing = stored ? await withProductCreator(tx, stored) : null;
     if (id && !existing) throw new StoreError('Product not found.', 404);
     const input = resolveProductFields(submitted, existing);
+    // New products inherit only the reviewed primary association. Existing
+    // products and their review fingerprints are never silently rewritten.
+    if (!existing && !input.creatorId) input.creatorId = await primaryCreatorId(tx, workspaceId);
     if (input.creatorId && !await tx.orm.public.Performer.where({ workspaceId, id: input.creatorId, status: 'ACTIVE' }).first()) throw new StoreError('Select an active creator profile from this workspace.', 409);
     for (const personId of input.participantIds) if (!await tx.orm.public.Performer.where({ workspaceId, id: personId, status: 'ACTIVE' }).first()) throw new StoreError('Select active participants from this workspace.', 409);
     const participantsChanged = !!existing && JSON.stringify([...(existing.participantIds ?? [])].sort()) !== JSON.stringify([...input.participantIds].sort());

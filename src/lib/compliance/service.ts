@@ -1,5 +1,5 @@
 import { videoEvidence } from './video-evidence';
-import { withProductCreator } from '@/src/lib/store/product-creator';
+import { primaryCreatorId, withProductCreator } from '@/src/lib/store/product-creator';
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { db } from '@/src/prisma/db';
@@ -251,6 +251,17 @@ async function creatorLink(tx: Pick<AuthTransaction, 'orm'>, workspaceId: string
   if (!record) return null;
   try { const value = JSON.parse(record.body); return value.samePersonReviewed === true && typeof value.performerId === 'string' ? value.performerId as string : null; } catch { return null; }
 }
+export async function primaryCreatorVerification(tx: Pick<AuthTransaction, 'orm'>, workspaceId: string) {
+  const id = await primaryCreatorId(tx, workspaceId);
+  const missing: string[] = [];
+  if (!id) return { id, status: 'Action Required', missing: ['Link the existing primary creator to the OWNER in Creator Verification.'] };
+  const ownerId = await creatorAccount(tx, workspaceId);
+  for (const [type, subjectId] of [['USER', ownerId], ['PERFORMER', id]]) {
+    try { await assertIdentity(tx, workspaceId, type, subjectId, new Date().toISOString().slice(0, 10)); }
+    catch (error) { if (!(error instanceof ComplianceError)) throw error; missing.push(error.message); }
+  }
+  return { id, status: missing.length ? 'Action Required' : 'Verified', missing: [...new Set(missing)] };
+}
 async function assertCreatorDocument(tx: Pick<AuthTransaction, 'orm'>, workspaceId: string, performerId: string, reference: string) {
   const id = /^document:([0-9a-f-]{36})$/i.exec(reference)?.[1];
   const document = id ? await tx.orm.public.PerformerDocument.where({ id, workspaceId, performerId, status: 'ACTIVE' }).first() : null;
@@ -356,7 +367,7 @@ export async function complianceAction(value: unknown) {
       const assets = [product.mediaAssetId, product.teaserMediaAssetId, product.thumbnailMediaAssetId].filter((id): id is string => !!id);
       const links = await tx.orm.public.MediaAssetPerformer.where({ workspaceId }).where(row => row.mediaAssetId.in(assets)).all();
       const records = await tx.orm.public.ContentConsent.where({ workspaceId, videoProductId: product.id }).orderBy(row => row.recordedAt.desc()).all();
-      if (links.some(row => row.performerId !== personId) || records.some(row => row.performerId !== personId)) throw new ComplianceError('This video includes other participants. Use the additional-people review.', 409);
+      if (product.participantIds.some(id => id !== personId) || links.some(row => row.performerId !== personId) || records.some(row => row.performerId !== personId)) throw new ComplianceError('This video includes other participants. Use the additional-people review to verify each person\'s identity, adult age and content-specific consent.', 409);
       const consent = records[0];
       if (consent && consent.status !== 'RECORDED') throw new ComplianceError('Resolve the revoked or disputed consent before review.', 409);
       const priorApproved = oldReview?.status === 'APPROVED' && oldReview.fingerprint === contentFingerprint(product) && oldReview.providerUserId === ownerId;
@@ -532,7 +543,14 @@ export async function complianceDashboard(status?: string) {
       try { await assertReviewEvidence(db, product, review); } catch (error) { if (!(error instanceof ComplianceError)) throw error; missing.push(error.message); }
     }
     if (['REJECTED', 'SUSPENDED', 'REMOVED'].includes(product.complianceStatus) || (review && ['REJECTED', 'SUSPENDED', 'REMOVED'].includes(review.status))) missing.push('Resolve the existing safety restriction in the advanced review.');
-    return { id: product.id, title: product.title, creatorName: profile?.displayName ?? 'Creator not selected', recordedOn, consentAvailable, rightsAvailable, consentDocumentId: rawConsent?.evidenceRef?.startsWith('document:') ? rawConsent.evidenceRef.slice(9) : null, rightsDocumentId: evidence?.rightsEvidenceRef?.startsWith('document:') ? evidence.rightsEvidenceRef.slice(9) : null, documents: profile?.documents.filter(document => document.status === 'ACTIVE' && (!document.expiresAt || new Date(document.expiresAt).getTime() > Date.now())) ?? [], reviewedAt: review?.reviewedAt ?? null, status: missing.length ? 'Action Required' : 'Approved', missing: [...new Set(missing)] };
+    const documents = profile?.documents.filter(document => document.status === 'ACTIVE' && (!document.expiresAt || new Date(document.expiresAt).getTime() > Date.now())) ?? [];
+    // A suggestion is not evidence of coverage: the reviewer must inspect the
+    // document and explicitly confirm this video's people and rights before use.
+    const releases = documents.filter(document => document.documentType === 'RELEASE_FORM');
+    const rightsDocuments = documents.filter(document => document.documentType === 'OTHER');
+    const suggestedConsentDocumentId = releases.length === 1 ? releases[0].id : null;
+    const suggestedRightsDocumentId = rightsDocuments.length === 1 ? rightsDocuments[0].id : rightsDocuments.length === 0 ? suggestedConsentDocumentId : null;
+    return { id: product.id, title: product.title, creatorName: profile?.displayName ?? 'Creator not selected', identityStatus: profile?.status ?? 'Action Required', suggestedConsentDocumentId, suggestedRightsDocumentId, recordedOn, consentAvailable, rightsAvailable, consentDocumentId: rawConsent?.evidenceRef?.startsWith('document:') ? rawConsent.evidenceRef.slice(9) : null, rightsDocumentId: evidence?.rightsEvidenceRef?.startsWith('document:') ? evidence.rightsEvidenceRef.slice(9) : null, documents, reviewedAt: review?.reviewedAt ?? null, status: missing.length ? 'Action Required' : 'Approved', missing: [...new Set(missing)] };
   }));
   const config = legalConfiguration();
   const pending = Object.entries(config).filter(([key, value]) => !['processor', 'billingDescriptor'].includes(key) && value === null).map(([key]) => key);

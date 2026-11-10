@@ -4,6 +4,7 @@ import { Film, UserRound } from 'lucide-react';
 import { getCurrentSession } from '@/src/lib/auth/session';
 import SignOutButton from '@/components/storefront/SignOutButton';
 import PurchasedVideos from '@/components/storefront/PurchasedVideos';
+import ProfilePhotoForm from '@/components/account/ProfilePhotoForm';
 import { listPurchasedVideos } from '@/src/lib/store/purchases';
 import styles from './account.module.css';
 export const metadata = { title: 'My Account' };
@@ -24,6 +25,7 @@ export default async function Page() {
         <div><dt>Email</dt><dd>{auth.user.email}</dd></div>
       </dl>
       <div className={styles.signOut}><SignOutButton/></div>
+      <ProfilePhotoForm/>
     </section>
     <section className={styles.library} aria-labelledby="purchased-videos-title">
       <h2 id="purchased-videos-title">Purchased Videos</h2>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import AccountMenu from '@/components/account/AccountMenu';
 
 import {
   CheckCircle2,
@@ -9,7 +10,6 @@ import {
   Menu,
   Settings,
   UploadCloud,
-  UserRound,
   X,
 } from "lucide-react";
 
@@ -185,25 +185,11 @@ export default function AppHeader({ role }: { role?: string }) {
               <Settings className="h-4 w-4" />
             </Link>
 
-            <Link href={`/app/settings#my-account`} aria-label="My Account" className="ml-1 flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] px-2 py-1.5 transition hover:bg-white/[0.05]"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500/25 to-violet-500/25">
-                <UserRound className="h-3.5 w-3.5 text-white/60" />
-              </div>
-
-              <div className="hidden text-left 2xl:block">
-                <div className="text-[10px] font-medium text-white/75">
-                  {t("myAccount")}
-                </div>
-
-                <div className="text-[9px] text-white/25">
-                  Store administrator
-                </div>
-              </div>
-            </Link>
+            <AccountMenu administrative/>
           </div>
 
           <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <AccountMenu administrative/>
             {hasUploads && (
               <button
                 type="button"

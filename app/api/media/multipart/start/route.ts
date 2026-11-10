@@ -1,6 +1,7 @@
 import { requireAdministrativeAccess } from '@/src/lib/auth/admin-access';
 import { assertSameOrigin, AuthError, authFailure } from '@/src/lib/auth/request';
 import crypto from "node:crypto";
+import { primaryCreatorId } from '@/src/lib/store/product-creator';
 import { videoMetadataSchema } from "@/src/lib/media/video-metadata";
 
 import {
@@ -33,6 +34,7 @@ type MultipartStartRequest = {
   folderId?: string;
   videoMetadata?: unknown;
   source?: "STORE_PRODUCT";
+  productCreatorId?: string;
 };
 
 const ALLOWED_CONTENT_TYPES =
@@ -227,6 +229,12 @@ export async function POST(
       );
     }
 
+    const productCreatorId = body.source === 'STORE_PRODUCT'
+      ? body.productCreatorId || await primaryCreatorId(db, workspaceMember.workspaceId) : null;
+    if (productCreatorId && !await db.orm.public.Performer.where({ id: productCreatorId, workspaceId: workspaceMember.workspaceId, status: 'ACTIVE' }).first()) {
+      return NextResponse.json({ success: false, error: 'CREATOR_NOT_FOUND', message: 'Select an active creator from this workspace before uploading.' }, { status: 409 });
+    }
+
     const creator =
       await db.orm.public.Creator.where({
         workspaceId:
@@ -411,13 +419,14 @@ export async function POST(
         null,
     });
 
-    if (performer) await db.orm.public.MediaAssetPerformer.create({
+    const linkedPerformerId = performer?.id ?? productCreatorId;
+    if (linkedPerformerId) await db.orm.public.MediaAssetPerformer.create({
       workspaceId:
         workspaceMember.workspaceId,
       mediaAssetId:
         mediaId,
       performerId:
-        performer.id,
+        linkedPerformerId,
     });
 
     return NextResponse.json({
@@ -426,7 +435,7 @@ export async function POST(
       objectKey,
       uploadId,
       bucketName,
-      performerId: performer?.id ?? null,
+      performerId: linkedPerformerId,
       folderId: folder?.id ?? null,
     });
   } catch (error) {

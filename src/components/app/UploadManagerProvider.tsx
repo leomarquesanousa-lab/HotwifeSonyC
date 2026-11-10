@@ -83,7 +83,7 @@ type UploadManagerContextValue = {
     target: UploadTarget,
   ) => AddFilesResult;
   startAll: () => Promise<void>;
-  uploadProductFile: (file: File) => Promise<string>;
+  uploadProductFile: (file: File, creatorId?: string) => Promise<string>;
   cancelUpload: (
     localId: string,
   ) => void;
@@ -350,6 +350,7 @@ export function UploadManagerProvider({
       async (
         upload: ManagedUpload,
         storeProduct = false,
+        productCreatorId?: string,
       ) => {
         const {
           localId,
@@ -411,6 +412,7 @@ export function UploadManagerProvider({
                       file.size,
                     videoMetadata,
                     source: storeProduct ? "STORE_PRODUCT" : undefined,
+                    productCreatorId: storeProduct ? productCreatorId : undefined,
                     performerId,
                     folderId,
                   }),
@@ -1159,7 +1161,7 @@ export function UploadManagerProvider({
       ],
     );
 
-  const uploadProductFile = useCallback(async (file: File) => {
+  const uploadProductFile = useCallback(async (file: File, creatorId?: string) => {
     if (uploadRunning.current) throw new Error("Wait for the current upload to finish.");
     if (!ACCEPTED_TYPES.includes(file.type) || file.size <= 0) throw new Error("Choose a supported, non-empty file.");
     const upload: ManagedUpload = {
@@ -1170,7 +1172,7 @@ export function UploadManagerProvider({
     setIsUploading(true);
     setUploads(current => [...current, upload]);
     try {
-      const mediaId = await uploadOne(upload, true);
+      const mediaId = await uploadOne(upload, true, creatorId);
       if (!mediaId) throw new Error("Unable to upload this file.");
       return mediaId;
     } finally {

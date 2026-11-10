@@ -8,7 +8,7 @@ import { fixture } from './fixtures/store-db.mjs';
 const root = process.cwd();
 const id = n => `55555555-5555-4555-8555-${String(n).padStart(12,'0')}`;
 const workspace = id(1), owner = id(2), person = id(3);
-const backend = await build({ stdin: { resolveDir: root, contents: `export {GET as list,POST as create} from './app/api/store/products/route';export {PUT as update} from './app/api/store/products/[id]/route';export {POST as check} from './app/api/store/products/compliance/route';export {getPublishedVideos,resolvePublicMedia} from './src/lib/store/public';export {contentFingerprint,mediaFingerprint} from './src/lib/compliance/service';export {state,db} from 'fixture';` }, bundle:true, platform:'node', format:'cjs', packages:'external', write:false, plugins:[{name:'isolated-db',setup(b){
+const backend = await build({ stdin: { resolveDir: root, contents: `export {GET as list,POST as create} from './app/api/store/products/route';export {PUT as update} from './app/api/store/products/[id]/route';export {POST as check} from './app/api/store/products/compliance/route';export {GET as reviewList,POST as approve} from './app/api/admin/compliance/route';export {getPublishedVideos,resolvePublicMedia} from './src/lib/store/public';export {contentFingerprint,mediaFingerprint} from './src/lib/compliance/service';export {state,db} from 'fixture';` }, bundle:true, platform:'node', format:'cjs', packages:'external', write:false, plugins:[{name:'isolated-db',setup(b){
  b.onResolve({filter:/(?:prisma\/db$|auth\/session$|^\.\/session$|^fixture$|^server-only$)/},a=>({path:a.path==='server-only'?'empty':'fixture',namespace:'memory'}));
  b.onLoad({filter:/.*/,namespace:'memory'},a=>({contents:a.path==='empty'?'':fixture,loader:'js'}));
  b.onResolve({filter:/(@aws-sdk|dotenv|storage\/|r2-client)/},a=>{throw Error('Forbidden production dependency: '+a.path);});
@@ -16,8 +16,11 @@ const backend = await build({ stdin: { resolveDir: root, contents: `export {GET 
 const mod = new Module(root+'/scripts/flow.memory.cjs');mod.filename=root+'/scripts/flow.memory.cjs';mod.paths=Module._nodeModulePaths(root);mod._compile(backend.outputFiles[0].text,mod.filename);const api=mod.exports;
 api.state.userId=owner;
 Object.assign(api.state.tables,{Workspace:[{id:workspace,status:'ACTIVE'}],WorkspaceMember:[{workspaceId:workspace,userId:owner,role:'OWNER'}],User:[{id:owner,status:'ACTIVE'}],Performer:[{id:person,workspaceId:workspace,status:'ACTIVE',displayName:'Fictional participant'}],ComplianceIdentity:['USER','PERFORMER'].map((subjectType,i)=>({id:id(10+i),workspaceId:workspace,subjectType,subjectId:i?person:owner,status:'VERIFIED',dateOfBirth:'1990-01-01',evidenceRef:'test-vault:identity-'+i,expiresAt:null,createdAt:'2025-01-01'}))});
+api.state.tables.Performer.unshift({id:id(30),workspaceId:workspace,status:'ACTIVE',displayName:'Additional fictional profile'});
+api.state.tables.ComplianceNote=[{id:id(31),workspaceId:workspace,objectType:'CREATOR_LINK',objectId:owner,body:JSON.stringify({performerId:person,samePersonReviewed:true}),createdAt:'2025-01-01'}];
+api.state.tables.PerformerDocument=[{id:id(32),workspaceId:workspace,performerId:person,status:'ACTIVE',documentType:'RELEASE_FORM',title:'Synthetic consent and rights',expiresAt:null}];
 const client = await build({stdin:{resolveDir:root,loader:'tsx',contents:`import React from 'react';import{createRoot}from'react-dom/client';import StoreVideos from './src/components/store/StoreVideos';import{UploadManagerProvider}from './src/components/app/UploadManagerProvider';import{VideoCard}from './components/storefront/Storefront';async function main(){const data=await(await fetch('/test/bootstrap')).json();createRoot(document.getElementById('root')).render(location.pathname==='/videos'?<>{data.videos.map(v=><VideoCard key={v.id} video={v}/>)}</>:<UploadManagerProvider><StoreVideos initialProducts={data.products} media={data.media} creators={data.creators}/></UploadManagerProvider>);}main();`},bundle:true,jsx:'automatic',write:false,plugins:[{name:'browser-isolation',setup(b){
- b.onResolve({filter:/next\/link$|next-intl$|WatchFullVideo$|LegalFooter$|read-video-metadata$/},a=>({path:a.path,namespace:'ui-fixture'}));
+ b.onResolve({filter:/next\/link$|next-intl$|WatchFullVideo$|LegalFooter$|AccountMenu$|read-video-metadata$/},a=>({path:a.path,namespace:'ui-fixture'}));
  b.onLoad({filter:/.*/,namespace:'ui-fixture'},a=>({contents:a.path==='next-intl'?`export const useTranslations=()=>key=>key;`:a.path.endsWith('read-video-metadata')?`export const readVideoMetadata=async()=>({durationSeconds:2,width:16,height:16});`:a.path==='next/link'?`import React from 'react';export default function Link(p){return React.createElement('a',p);}`:`export default function Placeholder(){return null;}`,loader:'js',resolveDir:root}));
 }}]});
 let serial=100;const uploads=new Map();const requests=[];
@@ -44,7 +47,8 @@ const server=createServer(async(req,res)=>{try{
  }
  const request=new Request('http://127.0.0.1:'+server.address().port+url.pathname,{method:req.method,headers:req.headers,body:req.method==='GET'?undefined:body});
  let response;
- if(url.pathname==='/api/store/products/compliance')response=await api.check(request);
+ if(url.pathname==='/api/admin/compliance')response=req.method==='GET'?await api.reviewList(request):await api.approve(request);
+ else if(url.pathname==='/api/store/products/compliance')response=await api.check(request);
  else if(url.pathname==='/api/store/products')response=req.method==='GET'?await api.list():await api.create(request);
  else if(/^\/api\/store\/products\/[^/]+$/.test(url.pathname))response=await api.update(request,{params:Promise.resolve({id:url.pathname.split('/').pop()})});
  else {json({error:'Unexpected request'},404);return;}
@@ -56,7 +60,7 @@ try{
  await context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin!==origin){blocked.push(url.origin);return route.abort();}return route.continue();});
  const page=await context.newPage();page.on('pageerror',error=>browserErrors.push(error.message));await page.goto(origin);
  await page.getByRole('button',{name:'New Video',exact:true}).click();
- await page.getByLabel('Creator',{exact:true}).selectOption(person);
+ assert.equal(await page.getByLabel('Creator',{exact:true}).inputValue(),person);await page.getByText('Creator identity: Verified.',{exact:true}).waitFor();
  const title='Vídeo fictício - teste local';await page.getByLabel('Title',{exact:true}).fill(title);await page.getByLabel('Description',{exact:true}).fill('Produto fictício com mídia sintética, sem conteúdo adulto.');await page.getByLabel('Price (USD)',{exact:true}).fill('12.34');await page.getByLabel('Category',{exact:true}).selectOption('Original');
  assert.equal(await page.getByLabel('Slug',{exact:true}).inputValue(),'video-ficticio-teste-local');
  for(const [label,name,type] of [['Full Video','full.mp4','video/mp4'],['Teaser','teaser.mp4','video/mp4'],['Cover Image','cover.png','image/png']]){
@@ -79,12 +83,11 @@ try{
  assert.equal(api.state.tables.VideoProduct[0].status,'DRAFT');assert.equal(await page.getByLabel('Title',{exact:true}).inputValue(),title);
  assert.equal(api.state.tables.ContentConsent?.length??0,0);
  console.log('PASS: legal section and replacement questionnaire absent; incomplete Publish rejected by real backend with specific pending records; form retained.');
- // Existing verified records, as supplied by the separate compliance registry.
+ // Exercise the actual approval API with synthetic evidence, rather than
+ // directly inserting an approved review into the test database.
  product=(await(await api.list()).json()).products[0];
- await api.db.orm.public.ContentConsent.create({workspaceId:workspace,videoProductId:product.id,performerId:person,status:'RECORDED',evidenceRef:'test-vault:release',mediaFingerprint:api.mediaFingerprint(product),depiction:true,distribution:true,publication:true,downloads:false,recordedAt:'2025-01-01'});
- await api.db.orm.public.ContentReview.create({workspaceId:workspace,videoProductId:product.id,status:'APPROVED',fingerprint:api.contentFingerprint(product),providerUserId:owner,recordedOn:'2025-01-01',allPersonsConfirmed:true,prohibitedChecked:true,copyrightConfirmed:true});
- await api.db.orm.public.VideoProduct.where({id:product.id}).updateAndCount({complianceStatus:'APPROVED'});
- await page.getByRole('button',{name:'Publish for Sale',exact:true}).first().click();await page.getByRole('status').filter({hasText:/Draft saved.|Published in the catalog|Unpublished/}).waitFor();
+ const reviewCard=page.getByRole('article',{name:'Video approval: '+title,exact:true});await reviewCard.waitFor();await reviewCard.getByLabel('Recording date',{exact:true}).fill('2025-01-01');assert.equal(await reviewCard.getByLabel('Signed consent covering this video',{exact:true}).inputValue(),'document:'+id(32));await reviewCard.getByLabel(/I reviewed the full video/).check();await reviewCard.getByRole('button',{name:'Approve and Publish',exact:true}).click();await page.getByRole('status').filter({hasText:'Published in the catalog.'}).waitFor();
+ assert(requests.some(r=>r.path==='/api/admin/compliance'&&r.method==='POST'));console.log('PASS: actual inline review form -> approval API -> publication API -> gallery, with synthetic evidence and no navigation to another screen.');
  product=api.state.tables.VideoProduct[0];assert.equal(product.status,'PUBLISHED');assert.equal(product.complianceStatus,'APPROVED');assert.equal(api.state.tables.ContentConsent.length,1);
  const catalog=await api.getPublishedVideos();assert.equal(catalog.length,1);assert.equal(await api.resolvePublicMedia(product.slug,'full'),null);
  await page.reload();await page.getByRole('button',{name:'Edit',exact:true}).click();await page.getByLabel('Title',{exact:true}).fill(title+' revised');
