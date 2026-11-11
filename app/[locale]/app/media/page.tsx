@@ -202,6 +202,15 @@ function ProductLinks({ media }: { media: MediaAsset }) {
   })}</div>;
 }
 
+function PublishMediaAction({ media }: { media: MediaAsset }) {
+  if (media.mediaType !== 'VIDEO') return null;
+  const product = media.products?.find(product => product.role === 'Full Video');
+  const teaserOnly = !product && media.products?.some(product => product.role === 'Teaser');
+  const className = 'mt-2 inline-flex min-h-8 items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-medium text-emerald-200';
+  if (media.status !== 'UPLOADED' || teaserOnly) return <button type="button" disabled className={className + ' opacity-50'} title={teaserOnly ? 'Este arquivo já é um teaser público. Escolha um vídeo completo separado.' : 'Aguarde a conclusão do upload.'}>Publicar para venda</button>;
+  return <Link href={`/app/store/videos?mediaId=${encodeURIComponent(media.id)}`} className={className}>{product?.status === 'PUBLISHED' ? 'Gerenciar venda' : 'Publicar para venda'}</Link>;
+}
+
 async function shareMedia(
   media: MediaAsset,
   shareText: string,
@@ -853,7 +862,7 @@ function MediaTile({
                 media.status
               }
             />
-            <ProductLinks media={media}/>
+            <ProductLinks media={media}/><PublishMediaAction media={media}/>
 
             {categories
               .slice(
@@ -1137,7 +1146,7 @@ function MediaListRow({
             media.status
           }
         />
-            <ProductLinks media={media}/>
+            <ProductLinks media={media}/><PublishMediaAction media={media}/>
 
         <button
           type="button"

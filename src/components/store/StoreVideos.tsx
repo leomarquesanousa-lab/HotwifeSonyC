@@ -38,7 +38,10 @@ function ProductUpload({ label, accept, fileName, disabled, progress, onFile, on
 function productPayload(product: StoreProduct) {
   return { title: product.title, slug: product.slug, description: product.description, priceCents: product.priceCents, currency: 'USD', category: product.category, featured: product.featured, status: product.status, publishedAt: product.publishedAt };
 }
-export default function StoreVideos({ initialProducts, media: initialMedia, canDelete = false }: { initialProducts: StoreProduct[]; media: StoreMedia[]; canDelete?: boolean; }) {
+function formFromProduct(product: StoreProduct): Form {
+  return { id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status };
+}
+export default function StoreVideos({ initialProducts, media: initialMedia, canDelete = false, initialMediaId }: { initialProducts: StoreProduct[]; media: StoreMedia[]; canDelete?: boolean; initialMediaId?: string; }) {
   const requestInFlight = useRef(false);
   const [products,setProducts] = useState(initialProducts);
   const [listFilter, setListFilter] = useState('ACTIVE');
@@ -46,9 +49,17 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
   const [media,setMedia] = useState(initialMedia);
   const { uploadProductFile, uploads, isUploading } = useUploadManager();
   const [uploadingField,setUploadingField] = useState<UploadKey | null>(null);
-  const [form,setForm] = useState<Form | null>(null);
+  const [form,setForm] = useState<Form | null>(() => {
+    if (!initialMediaId) return null;
+    const product = initialProducts.filter(product => product.mediaAssetId === initialMediaId).sort((a,b) => Number(b.status === 'PUBLISHED') - Number(a.status === 'PUBLISHED'))[0];
+    if (product) return formFromProduct(product);
+    const media = initialMedia.find(media => media.id === initialMediaId && media.mediaType === 'VIDEO');
+    if (!media || initialProducts.some(product => product.teaserMediaAssetId === initialMediaId)) return null;
+    const title = media.originalFileName.replace(/\.[^.]+$/, '');
+    return { ...emptyForm, mediaAssetId: media.id, title, slug: slugFromTitle(title) };
+  });
   const [busy,setBusy] = useState(false);
-  const [error,setError] = useState('');
+  const [error,setError] = useState(() => initialMediaId && (!initialMedia.some(media => media.id === initialMediaId && media.mediaType === 'VIDEO') || (!initialProducts.some(product => product.mediaAssetId === initialMediaId) && initialProducts.some(product => product.teaserMediaAssetId === initialMediaId))) ? 'O vídeo não está disponível para venda neste workspace ou já é usado como teaser público.' : '');
   const [notice,setNotice] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<StoreProduct | null>(null);
   const locked = busy || isUploading;
@@ -74,7 +85,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
   function edit(product: StoreProduct) {
     setError('');setNotice('');
 
-    setForm({ id: product.id, mediaAssetId: product.mediaAssetId, teaserMediaAssetId: product.teaserMediaAssetId ?? '', thumbnailMediaAssetId: product.thumbnailMediaAssetId ?? '', title: product.title, slug: product.slug, description: product.description, price: (product.priceCents / 100).toFixed(2), category: product.category, featured: product.featured, status: product.status });
+    setForm(formFromProduct(product));
   }
   async function save(payload: Record<string, unknown>, id?: string, keepEditor = false) {
     if (requestInFlight.current) return null;
