@@ -143,6 +143,7 @@ export default function StoreVideos({ initialProducts, media: initialMedia, canD
 
 
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Title<input className={fieldClass} required maxLength={160} value={form.title} onChange={event => updateTitle(event.target.value)}/></label>
+      <label className="grid min-w-0 gap-2 text-xs text-white/70 sm:col-span-2">Description<textarea aria-label="Description" className={fieldClass} rows={4} maxLength={5000} value={form.description} onChange={event => update('description',event.target.value)}/></label>
 
       <label className="grid min-w-0 gap-2 text-xs text-white/70">Price (USD)<input className={fieldClass} inputMode="decimal" placeholder="19.99" required value={form.price} onChange={event => update('price',event.target.value)}/></label>
 
