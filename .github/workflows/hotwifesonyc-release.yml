@@ -29,13 +29,16 @@ jobs:
           node-version: '22'
           package-manager-cache: false
       - run: npm ci --no-audit --no-fund
-      - name: Validate source
-        run: |
-          npm run typecheck
-          npm run lint
-          npm test
-          npm run build
-          npm run test:integration
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Integration build
+        run: npm run build
+      - name: Integration tests
+        run: npm run test:integration
       - name: Build production standalone
         env:
           SITE_URL: https://hotwifesonyc.com
