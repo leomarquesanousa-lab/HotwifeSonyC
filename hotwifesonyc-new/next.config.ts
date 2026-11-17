@@ -4,7 +4,7 @@ const config: NextConfig = {
   ...(process.env.SONY_STANDALONE === '1' ? { output: 'standalone' as const } : {}),
   outputFileTracingExcludes: { '/*': ['./.local/**/*', './test-results/**/*', './reference/**/*', './docs/**/*'] },
   experimental: process.env.SONY_STANDALONE === '1'
-    ? { cpus: 1, workerThreads: false, webpackBuildWorker: false }
+    ? { cpus: 1, workerThreads: false, webpackBuildWorker: false, staticGenerationMaxConcurrency: 1 }
     : { cpus: 2 },
 };
 export default config;
