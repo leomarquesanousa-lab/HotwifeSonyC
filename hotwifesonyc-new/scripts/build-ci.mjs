@@ -5,7 +5,7 @@ import {join} from 'node:path';
 // never log excerpts, environment variables, credentials or user content.
 const run=spawnSync(process.execPath,['node_modules/next/dist/bin/next','build','--webpack'],{encoding:'utf8',maxBuffer:16*1024*1024});
 if(run.status===0){console.log('Production build completed successfully.');process.exit(0);}
-const output=(run.stdout??'')+(run.stderr??'');
+const output=((run.stdout??'')+(run.stderr??'')).replace(/\u001b\[[0-9;]*m/g,'');
 const labels=[
   [/SIGABRT/,'Worker aborted with SIGABRT'],
   [/EAGAIN|uv_thread_create/,'Operating-system thread or process limit'],
@@ -24,7 +24,11 @@ for(const [pattern,label]of labels)if(pattern.test(output)){found=true;console.l
 const known=new Set(Object.keys(JSON.parse(readFileSync('package-lock.json','utf8')).packages).map(key=>key.split('node_modules/').pop()).filter(Boolean));
 function collect(directory){for(const file of readdirSync(directory,{withFileTypes:true})){const path=join(directory,file.name);if(file.isDirectory())collect(path);else if(/\.(mjs|tsx?|jsx?)$/.test(file.name)){const source=readFileSync(path,'utf8');for(const match of source.matchAll(/(?:from\s*|import\s*)['"]([^'"]+)['"]/g))known.add(match[1]);}}}
 for(const directory of ['app','components','lib','scripts'])collect(directory);
-for(const match of output.matchAll(/(?:Cannot find module|Can't resolve)\s*['"]([^'"]+)['"]/g))if(known.has(match[1]))console.log(`::error::Known missing module: ${match[1]}`);
+for(const match of output.matchAll(/(?:Cannot find module|Can't resolve)\s*['"]([^'"]+)['"]/g)){
+ const identifier=match[1];
+ if(known.has(identifier))console.log(`::error::Known missing module: ${identifier}`);
+ else {const packageName=identifier.startsWith('@')?identifier.split('/').slice(0,2).join('/'):identifier.split('/')[0];if(known.has(packageName))console.log(`::error::Known dependency with missing internal module: ${packageName}`);}
+}
 for(const route of ['/','/_not-found','/catalog','/admin','/admin/login','/robots.txt','/sitemap.xml'])if(output.includes(`prerendering page "${route}"`))console.log(`::error::Known failing route: ${route}`);
 if(!found)console.log('::error::Unclassified build failure; raw logs were not copied or published.');
 process.exit(run.status??1);
