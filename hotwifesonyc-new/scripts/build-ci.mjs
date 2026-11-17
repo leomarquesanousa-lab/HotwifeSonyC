@@ -1,4 +1,6 @@
 import {spawnSync} from 'node:child_process';
+import {readFileSync,readdirSync} from 'node:fs';
+import {join} from 'node:path';
 // Keep raw build output in the runner only. Publish fixed diagnostic labels,
 // never log excerpts, environment variables, credentials or user content.
 const run=spawnSync(process.execPath,['node_modules/next/dist/bin/next','build','--webpack'],{encoding:'utf8',maxBuffer:16*1024*1024});
@@ -17,6 +19,12 @@ const labels=[
 ];
 let found=false;
 for(const [pattern,label]of labels)if(pattern.test(output)){found=true;console.log(`::error::Build diagnostic: ${label}`);}
+// Only identifiers already present in checked-in imports or dependency names
+// may be reported. Arbitrary module paths and log text remain private.
+const known=new Set(Object.keys(JSON.parse(readFileSync('package-lock.json','utf8')).packages).map(key=>key.split('node_modules/').pop()).filter(Boolean));
+function collect(directory){for(const file of readdirSync(directory,{withFileTypes:true})){const path=join(directory,file.name);if(file.isDirectory())collect(path);else if(/\.(mjs|tsx?|jsx?)$/.test(file.name)){const source=readFileSync(path,'utf8');for(const match of source.matchAll(/(?:from\s*|import\s*)['"]([^'"]+)['"]/g))known.add(match[1]);}}}
+for(const directory of ['app','components','lib','scripts'])collect(directory);
+for(const match of output.matchAll(/(?:Cannot find module|Can't resolve)\s*['"]([^'"]+)['"]/g))if(known.has(match[1]))console.log(`::error::Known missing module: ${match[1]}`);
 for(const route of ['/','/_not-found','/catalog','/admin','/admin/login','/robots.txt','/sitemap.xml'])if(output.includes(`prerendering page "${route}"`))console.log(`::error::Known failing route: ${route}`);
 if(!found)console.log('::error::Unclassified build failure; raw logs were not copied or published.');
 process.exit(run.status??1);
