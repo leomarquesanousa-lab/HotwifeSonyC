@@ -36,14 +36,14 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Integration build
-        run: npm run build
+        run: node scripts/build-ci.mjs
       - name: Integration tests
         run: npm run test:integration
       - name: Build production standalone
         env:
           SITE_URL: https://hotwifesonyc.com
           SONY_STANDALONE: '1'
-        run: npm run build
+        run: node scripts/build-ci.mjs
       - name: Package without server credentials or persistent data
         run: |
           set -eu
