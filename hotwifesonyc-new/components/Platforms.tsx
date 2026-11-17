@@ -1,0 +1,5 @@
+import type { Platform } from '../lib/content';
+import PlatformLogo from './PlatformLogo';
+export default function Platforms({platforms}:{platforms:Platform[]}) {
+  return <section id="platforms" className="platforms section"><div className="section-heading"><div><span className="eyebrow">PLATFORMS / 03</span><h2>Find me <em>here.</em></h2></div><p>Explore my collections on<br/>the platforms below.</p></div><div className="platform-list">{platforms.filter(p=>p.active).map((p, i) => <div key={p.id} className="platform-row"><span className="index">{String(i + 1).padStart(2,'0')}</span>{p.url ? <a className="platform-link" href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${p.name} (opens in a new tab)`}><div className="platform-identity"><PlatformLogo platform={p}/><div><h3>{p.name}</h3><p>{p.label}</p></div></div><span className="platform-visit" aria-hidden="true"><span className="platform-visit-label">Visit platform</span> <span>↗</span></span></a> : <><div><h3>{p.name}</h3><p>{p.label}</p></div><span className="pending">Coming soon</span></>}</div>)}</div></section>;
+}

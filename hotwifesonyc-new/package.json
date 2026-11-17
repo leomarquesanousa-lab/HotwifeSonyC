@@ -1,0 +1,15 @@
+{
+  "name": "hotwifesonyc-new", "version": "1.0.0", "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3100",
+    "build": "node scripts/validate-content.mjs && next build --webpack",
+    "start": "next start --hostname 127.0.0.1 --port 3100",
+    "typecheck": "tsc --noEmit", "test": "node scripts/content.test.mjs",
+    "validate:content": "node scripts/validate-content.mjs",
+    "admin:setup": "node scripts/setup-admin.mjs",
+    "lint": "eslint .",
+    "test:integration": "node scripts/integration.test.mjs"
+  },
+  "dependencies": { "next": "16.3.4", "react": "19.2.8", "react-dom": "19.2.8" },
+  "devDependencies": { "@types/node": "^20", "@types/react": "^19", "@types/react-dom": "^19", "typescript": "^5", "eslint":"^9", "eslint-config-next":"16.3.4" }
+}

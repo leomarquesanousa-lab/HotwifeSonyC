@@ -1,0 +1,83 @@
+{
+  "name": "Sony C",
+  "slogan": "One Vision. Endless Stories",
+  "biography": "I am HotwifeSonyC, a Brazilian hotwife living in Las Vegas. My husband gave me a permanent hall pass. I get into trouble all week long.\n\nThis is my video diary. I go on solo dates, have adventures with other swingers, and film the stories my friends would make me tell twice. Some nights go exactly as planned. My favorite stories usually start when the plan goes out the window. If you see it here, it really happened.\n\nI have a soft spot for cubs, and yes, I like BBC, BWC, and the everyday guy who makes me laugh and has me checking my phone on the way home. I love variety. Half the fun is being surprised by who catches my eye.\n\nIn Vegas, a quiet Tuesday can turn into a solo date that has my husband asking what happened next.\n\nEver wonder what a married woman actually does with a permanent hall pass? Pick the video with the title you would have a hard time explaining, and start there.",
+  "hero": {
+    "image": "/images/sony-pool.png",
+    "alt": "Sony C beside a swimming pool overlooking the sea"
+  },
+  "portrait": {
+    "image": "/images/sony-city.jpeg",
+    "alt": "Sony C with a city skyline in the background"
+  },
+  "platforms": [
+    {
+      "id": "onlyfans",
+      "name": "OnlyFans Regular",
+      "url": "https://onlyfans.com/hotwifesonyc",
+      "label": "The regular collection",
+      "active": true
+    },
+    {
+      "id": "onlyfans-vip",
+      "name": "OnlyFans VIP",
+      "url": "https://onlyfans.com/hotwifesonycvip",
+      "label": "The VIP collection",
+      "active": true
+    },
+    {
+      "id": "fansly",
+      "name": "Fansly",
+      "url": "https://fansly.com/HotWifeSonyC",
+      "label": "Explore my collection",
+      "active": true
+    },
+    {
+      "id": "clips4sale",
+      "name": "Clips4Sale",
+      "url": "https://www.clips4sale.com/studio/564937/hotwifesonyc-store",
+      "label": "Explore my store",
+      "active": true
+    },
+    {
+      "id": "manyvids",
+      "name": "ManyVids",
+      "url": "https://www.manyvids.com/Activity/hotwifesonyc/1010142490/club",
+      "label": "Join my club",
+      "active": true
+    }
+  ],
+  "picks": [
+    {
+      "id": "pool",
+      "image": "/images/sony-pool.png",
+      "alt": "Sony C relaxing beside a seaside pool",
+      "order": 1,
+      "title": "",
+      "description": "",
+      "url": null,
+      "active": true
+    },
+    {
+      "id": "city",
+      "image": "/images/sony-city.jpeg",
+      "alt": "Sony C photographed against a city skyline",
+      "order": 2,
+      "title": "",
+      "description": "",
+      "url": null,
+      "active": true
+    },
+    {
+      "id": "editorial",
+      "image": "/images/sony-editorial.jpeg",
+      "alt": "Sony C in a colorful indoor portrait",
+      "order": 3,
+      "title": "",
+      "description": "",
+      "url": null,
+      "active": true
+    }
+  ],
+  "introduction": "A glimpse into the world of Sony C."
+}

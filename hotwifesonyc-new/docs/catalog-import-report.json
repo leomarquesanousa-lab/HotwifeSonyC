@@ -1,0 +1,137 @@
+{
+  "total": 134,
+  "first": 1,
+  "last": 134,
+  "duplicates": [],
+  "missing": [],
+  "sourceFiles": [
+    {
+      "file": "VideoListMasterPage1.jpg",
+      "sha256": "d6fade438ad286da7b43b94821288d93edd700be816036d9a011f8c6c57d2ff6"
+    },
+    {
+      "file": "VideoListMasterPage2.jpg",
+      "sha256": "9ee277cb318ddfcfcec8a254cd8e721463c09ff20e117466ffb65bfc7fa193a2"
+    },
+    {
+      "file": "VideoListMasterPage3.jpg",
+      "sha256": "b7ab9100b087417b704e575eeacc7708614af400669ec3c3cebd04b822312091"
+    },
+    {
+      "file": "VideoListMasterPage4.jpg",
+      "sha256": "6ae3583f3d78cdf90cf6471ca1b5bbcb1d6715ae22bcbb9e12ac5f0d0c3c5296"
+    },
+    {
+      "file": "VideoListMasterPage5.jpg",
+      "sha256": "cbad7bc4d11b52bc3f8194d79eac51a3a4eea4a7bdbe235700e4365d08804a61"
+    },
+    {
+      "file": "VideoListMasterPage6.jpg",
+      "sha256": "807733e505ff3ddee81986b3f43aa3296e0dd4b6204012aa754cf7a1b6cd1e4d"
+    }
+  ],
+  "checkedRecords": 134,
+  "requiresReview": [
+    {
+      "number": 7,
+      "status": "review",
+      "notes": "Confirm decorative leading emoji against the original; displayed at small resolution."
+    },
+    {
+      "number": 8,
+      "status": "review",
+      "notes": "Confirm decorative leading emoji against the original."
+    },
+    {
+      "number": 11,
+      "status": "review",
+      "notes": "Confirm decorative leading emoji against the original."
+    },
+    {
+      "number": 13,
+      "status": "review",
+      "notes": "Confirm the small decorative emojis; duration is a three-part value exactly as shown."
+    },
+    {
+      "number": 20,
+      "status": "review",
+      "notes": "Title stops after “the” in the supplied source. Do not complete without Ron."
+    },
+    {
+      "number": 21,
+      "status": "review",
+      "notes": "Confirm decorative leading emoji. Performer handle differs from other rows; preserved as printed."
+    },
+    {
+      "number": 22,
+      "status": "review",
+      "notes": "Confirm decorative leading emoji against the original."
+    },
+    {
+      "number": 29,
+      "status": "review",
+      "notes": "Two-part duration preserved; not converted to a single runtime."
+    },
+    {
+      "number": 37,
+      "status": "review",
+      "notes": "Confirm decorative smoke emojis against the original."
+    },
+    {
+      "number": 38,
+      "status": "review",
+      "notes": "Confirm trailing hand emoji against the original."
+    },
+    {
+      "number": 39,
+      "status": "review",
+      "notes": "Runtime not provided in source."
+    },
+    {
+      "number": 40,
+      "status": "review",
+      "notes": "Runtime not provided in source."
+    },
+    {
+      "number": 44,
+      "status": "review",
+      "notes": "Title spelling “DFWKight” preserved from source."
+    },
+    {
+      "number": 52,
+      "status": "review",
+      "notes": "Runtime not provided; source explicitly says VIP fans only / not for sale."
+    },
+    {
+      "number": 66,
+      "status": "review",
+      "notes": "Unmatched quotation mark preserved from source."
+    },
+    {
+      "number": 68,
+      "status": "inactive",
+      "notes": "Source explicitly excludes this entry. Imported inactive; runtime absent."
+    },
+    {
+      "number": 111,
+      "status": "review",
+      "notes": "Participant handle has an ambiguous I/l in the source; manual confirmation required."
+    },
+    {
+      "number": 116,
+      "status": "review",
+      "notes": "Confirm digit 0 versus letter O in @LesterDiam0nd."
+    },
+    {
+      "number": 120,
+      "status": "review",
+      "notes": "Participant handle is small; confirm spelling with Ron."
+    },
+    {
+      "number": 125,
+      "status": "review",
+      "notes": "Bottom of title is cropped by the source image; confirm complete title and trailing emoji."
+    }
+  ],
+  "note": "Visual transcription checked against supplied images. Flagged fields remain unresolved and are excluded from public display. Entry 68 is excluded by the source itself. No descriptions, covers or external links were invented."
+}
